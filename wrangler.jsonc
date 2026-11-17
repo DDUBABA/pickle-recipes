@@ -11,7 +11,7 @@
     "migrations_dir": "migrations"
   }],
   "vars": {
-    "GITHUB_REPOSITORY": "jkc1832/pickle-recipes",
+    "GITHUB_REPOSITORY": "DDUBABA/pickle-recipes",
     "GITHUB_DEFAULT_BRANCH": "main",
     "NODE_VERSION": "22",
     "SKIP_DEPENDENCY_INSTALL": "1"

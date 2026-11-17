@@ -1,7 +1,8 @@
 import {ApiError, json} from '../../lib/http.js';
 import {enforceHost,rateLimit,secureResponse} from '../../lib/security.js';
+import {lazyCleanup} from '../../lib/retention.js';
 export async function onRequest(context) {
-  let response;
+  let response,cleanupAllowed=false;
   try {
     enforceHost(context);
     const origin = context.request.headers.get('Origin');
@@ -9,8 +10,13 @@ export async function onRequest(context) {
     if (context.request.method === 'OPTIONS') response=new Response(null, {status:204,headers:{Allow:'GET, POST, OPTIONS'}});
     else {
       await rateLimit(context);
+      cleanupAllowed=context.request.method==='POST' && new URL(context.request.url).pathname!=='/api/admin/maintenance';
       response=await context.next();
-      if(response.status===405||response.status===404)response=json({ok:false,code:'NOT_FOUND_OR_METHOD',message:'API 경로와 HTTP 메서드를 확인해 주세요.'},response.status);
+      if(response.status===405||response.status===404){
+        const allow=response.headers.get('Allow');
+        response=json({ok:false,code:'NOT_FOUND_OR_METHOD',message:'API 경로와 HTTP 메서드를 확인해 주세요.'},response.status);
+        if(allow)response.headers.set('Allow',allow);
+      }
     }
   } catch(error) {
     if (error instanceof ApiError) {
@@ -21,6 +27,11 @@ export async function onRequest(context) {
       console.error('API failure', 'SERVICE_UNAVAILABLE');
       response=json({ok:false,code:'SERVICE_UNAVAILABLE',message:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'},503);
     }
+  }
+  // Refresh the current consent before cleanup can consider it inactive.
+  if(cleanupAllowed){
+    const cleanup=lazyCleanup(context.env.DB);
+    if(context.waitUntil)context.waitUntil(cleanup);else await cleanup;
   }
   return secureResponse(response);
 }

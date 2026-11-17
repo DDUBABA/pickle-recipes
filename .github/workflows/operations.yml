@@ -1,4 +1,4 @@
-name: Production health and retention
+name: Production health
 on:
   schedule:
     - cron: '17,47 * * * *'
@@ -20,10 +20,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - name: Verify production and apply retention
-        run: node scripts/operations.mjs --maintenance
-        env:
-          SUBMISSION_METADATA_SECRET: ${{ secrets.SUBMISSION_METADATA_SECRET }}
+      - name: Verify production health
+        run: node scripts/operations.mjs
       - name: Explain incident
         if: failure()
-        run: echo 'Production security/availability or retention failed. Inspect the failed step, Cloudflare deployment and D1. Do not weaken access controls to restore service.' >> "$GITHUB_STEP_SUMMARY"
+        run: echo 'Production security/availability check failed. Inspect the failed step, Cloudflare deployment and D1.' >> "$GITHUB_STEP_SUMMARY"

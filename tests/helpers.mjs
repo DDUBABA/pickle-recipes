@@ -3,8 +3,8 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {onRequest} from '../functions/api/_middleware.js';
 export class D1 {
   constructor(){this.db=new DatabaseSync(':memory:');for(const name of readdirSync(new URL('../migrations/',import.meta.url)).filter(n=>n.endsWith('.sql')).sort())this.db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));}
-  prepare(sql){const statement=this.db.prepare(sql);const wrapper={values:[],bind(...values){this.values=values;return this;},async first(){return statement.get(...this.values)||null;},async all(){return {results:statement.all(...this.values)};},async run(){return statement.run(...this.values);}};return wrapper;}
-  async batch(statements){this.db.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());this.db.exec('COMMIT');return result;}catch(error){this.db.exec('ROLLBACK');throw error;}}
+  prepare(sql){const statement=this.db.prepare(sql);const wrapper={values:[],bind(...values){this.values=values;return this;},async first(){return statement.get(...this.values)||null;},async all(){return {results:statement.all(...this.values)};},async run(){return {success:true,meta:statement.run(...this.values)};}};return wrapper;}
+  batch(statements){const task=(this.pending??Promise.resolve()).then(async()=>{this.db.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());this.db.exec('COMMIT');return result;}catch(error){this.db.exec('ROLLBACK');throw error;}});this.pending=task.catch(()=>{});return task;}
 }
 export function request(path,options={}){return new Request(`https://test.local${path}`,options);}
 export async function call(handler,request,env,params={}){const context={request,env:{SUBMISSION_METADATA_SECRET:'test-signing-secret',LOCAL_DEVELOPMENT:'1',...env},params};return onRequest({...context,next:()=>handler(context)});}

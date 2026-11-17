@@ -11,7 +11,11 @@ permissions:
   pull-requests: read
 jobs:
   release:
-    if: github.actor != 'pickle-recipes-jkc1832[bot]'
+    # Generated commit identity remains stable across account/App renames.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.head_commit.committer.email != '41898282+github-actions[bot]@users.noreply.github.com' ||
+      !startsWith(github.event.head_commit.message, 'chore: publish item versions and catalog')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -54,8 +58,6 @@ jobs:
             git commit -m 'chore: publish item versions and catalog'
             git push origin HEAD:main
           fi
-      - name: Publish the verified production branch for Pages Git integration
-        run: git push origin HEAD:production
       - name: Detect Cloudflare deployment configuration
         id: cloudflare
         env:
@@ -73,11 +75,18 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.25.0 --activate
           pnpm install --frozen-lockfile
-      - name: Apply D1 migrations and deploy finalized build
+      - name: Apply D1 migrations before triggering Pages Git deployment
+        if: steps.cloudflare.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 migrations apply DB --remote
+      - name: Publish the verified production branch for Pages Git integration
+        run: git push origin HEAD:production
+      - name: Deploy finalized build directly
         if: steps.cloudflare.outputs.ready == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          pnpm exec wrangler d1 migrations apply DB --remote
-          pnpm exec wrangler pages deploy dist --project-name pickle-recipes --branch main
+          pnpm exec wrangler pages deploy dist --project-name pickle-recipes --branch production

@@ -1,5 +1,4 @@
 import {bearer,constantEqual,fail,json} from '../../lib/http.js';
-import {verifyConsent} from '../../lib/consent.js';
 export function csv(rows) {
   const keys = Object.keys(rows[0] || {item_id:'',total_downloads:0});
   const escape = value => '"'+String(value ?? '').replace(/^[=+@\-\t\r]/u,"'$&").replaceAll('"','""')+'"';
@@ -11,8 +10,7 @@ export async function onRequestGet(context) {
   if(!['items','daily','versions','users'].includes(group) || !['json','csv'].includes(format)) fail(400,'INVALID_QUERY','group 또는 format을 확인해 주세요.');
   const admin = !!env.ADMIN_STATS_TOKEN && constantEqual(bearer(request),env.ADMIN_STATS_TOKEN);
   // An unset admin token never exposes person-level analytics.
-  if(env.ADMIN_STATS_TOKEN && !admin || group!=='items' && !admin) fail(403,'ADMIN_REQUIRED','관리자 토큰이 필요합니다.');
-  if(!admin) await verifyConsent(context);
+  if(group!=='items' && !admin) fail(403,'ADMIN_REQUIRED','관리자 토큰이 필요합니다.');
   const limit=Number(params.get('limit') || 100);
   const offset=Number(params.get('offset') || 0);
   if(!Number.isInteger(limit)||limit<1||limit>1000||!Number.isInteger(offset)||offset<0) fail(400,'INVALID_LIMIT','페이지 범위를 확인해 주세요.');
