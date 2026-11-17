@@ -12,6 +12,8 @@
 
 프록시 엔진 자체가 바뀔 때만 아래를 배포한다. 새 사이트 JSON이 병합될 때마다 Worker나 Pages 프로젝트를 만들 필요는 없다.
 
+동일 계정의 Pages로 공개 fetch를 보내기 위해 모든 프록시에 `global_fetch_strictly_public` 호환성 플래그를 적용한다. 일반 공개 요청과 동일하게 대상 보안 정책을 통과하며, 서비스 바인딩이나 사용자 요청 헤더 전달은 사용하지 않는다.
+
 ```powershell
 node scripts/deploy-bridge-proxies.mjs
 node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bridge.jsonc

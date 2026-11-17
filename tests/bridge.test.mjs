@@ -47,6 +47,26 @@ test('Bridge router only fetches published assets without forwarding secrets or 
   for(const url of ['https://evil.example.com/','https://smartthings-pat.login.pickle-recipes.com/api/submit','https://smartthings-pat.login.pickle-recipes.com/sites/knocktown-appapi.json','https://unknown-site.login.pickle-recipes.com/'])assert.equal((await routeBridge(new Request(url),fake)).status,404);
   assert.equal((await routeBridge(new Request('https://smartthings-pat.login.pickle-recipes.com/',{method:'POST',body:'secret'}),fake)).status,405);
 });
+test('Bridge router rejects upstream redirects in the Workers-supported redirect mode',async()=>{
+  for(const redirectStage of ['index','asset']){
+    let count=0;
+    const fake=async(url,options)=>{
+      assert.equal(options.redirect,'manual');count++;
+      if(redirectStage==='index'||count===2)return Response.redirect('https://untrusted.example/secret',302);
+      return Response.json({items:[bridgeItem(site)]});
+    };
+    const result=await routeBridge(new Request('https://pickle-loginbridge--smartthings-pat.pages.dev/'),fake);
+    assert.equal(result.status,503);assert.equal(result.headers.has('Location'),false);
+    assert.equal(count,redirectStage==='index'?1:2);assert.doesNotMatch(await result.text(),/untrusted|secret/);
+  }
+});
+
+test('Bridge router returns only fixed diagnostics for upstream parsing failures',async()=>{
+  const result=await routeBridge(new Request('https://pickle-loginbridge--smartthings-pat.pages.dev/'),async()=>new Response('private-upstream-content'));
+  assert.equal(result.status,503);assert.equal(result.headers.get('X-Bridge-Error'),'index-json-SyntaxError');
+  assert.doesNotMatch(await result.text(),/private-upstream-content/);
+});
+
 test('Search and item APIs support bridge while preserving kind compatibility',async()=>{
   const fixture={...site,siteId:'search-test-bridge',bridgeUrl:'https://pickle-loginbridge--search-test-bridge.pages.dev/'};
   const item=bridgeItem(fixture);catalog.items.push(item);bundles[item.id]={[`sites/${item.id}.json`]:JSON.stringify(fixture)};
