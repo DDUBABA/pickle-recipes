@@ -10,7 +10,8 @@ import {onRequestPost as submit} from '../functions/api/submit.js';
 import {catalog,bundles} from '../lib/catalog.js';
 import {terms} from '../lib/consent.js';
 import {D1,request,call,payload,credentials,meta,files} from './helpers.mjs';
-catalog.items.push(meta,{...meta,id:'blocked-service',status:'blocked'});bundles[meta.id]={'meta.json':JSON.stringify(meta),...files};
+// Endpoint tests use a stable fixture even after release publishes real catalog entries.
+catalog.items.splice(0,catalog.items.length,meta,{...meta,id:'blocked-service',status:'blocked'});bundles[meta.id]={'meta.json':JSON.stringify(meta),...files};
 async function setup(extra={}){const env={DB:new D1(),...extra};const response=await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'test-user',clientType:'web',autoUploadAllowed:true})),env);assert.equal(response.status,201);const consent=await response.json();return {env,consent,headers:credentials(consent)};}
 
 test('Upload consent defaults to true, preserves explicit false, and agrees with stored and verified permissions',async()=>{
