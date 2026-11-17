@@ -11,7 +11,7 @@ export async function build(root=process.cwd(),{indexOnly=false}={}) {
   const origin=new URL(process.env.SITE_URL || config.siteUrl).origin;
   const published=all.filter(({meta,files})=>ledger.items[meta.id]?.hash===contentHash(meta,files)&&meta.releases.length>0&&meta.version===ledger.items[meta.id].version);
   const items=published.map(({meta})=>meta);
-  const catalog={schemaVersion:1,affiliation:terms.affiliation,termsVersion:terms.termsVersion,guideUrl:'/guide.md',templateUrl:'/template/',termsUrl:'/terms.json',api:{consent:'/api/consent',verifyConsent:'/api/consent/verify',search:'/api/search',item:'/api/items/{id}',download:'/api/download',submit:'/api/submit',stats:'/api/stats'},items};
+  const catalog={schemaVersion:1,affiliation:terms.affiliation,termsVersion:terms.termsVersion,guideUrl:'/guide.md',templateUrl:'/template/',termsUrl:'/terms.json',api:{consent:'/api/consent',verifyConsent:'/api/consent/verify',revokeConsent:'/api/consent/revoke',health:'/api/health',search:'/api/search',item:'/api/items/{id}',download:'/api/download',submit:'/api/submit',stats:'/api/stats'},items};
   const xmlEscape=value=>value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;');
   const sitemap=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/','/terms.html','/template/','/guide.md'].map(route=>`<url><loc>${xmlEscape(origin+route)}</loc></url>`).join('')}</urlset>\n`;
   await mkdir(path.join(root,'recipes'),{recursive:true});
@@ -30,7 +30,7 @@ export async function build(root=process.cwd(),{indexOnly=false}={}) {
   await writeFile(path.join(dist,'404.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><title>찾을 수 없습니다</title><h1>페이지를 찾을 수 없습니다.</h1><a href="/">피클 레시피로 돌아가기</a></html>');
   const ld=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
   const hash=createHash('sha256').update(ld||'').digest('base64');
-  await writeFile(path.join(dist,'_headers'),`/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-${hash}'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\n/terms.json\n  Cache-Control: no-store\n/recipes/index.json\n  Cache-Control: no-cache\n`);
+  await writeFile(path.join(dist,'_headers'),`/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  X-Frame-Options: DENY\n  Strict-Transport-Security: max-age=31536000\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-${hash}'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\n/terms.json\n  Cache-Control: no-store\n/recipes/index.json\n  Cache-Control: no-cache\n`);
   await writeFile(path.join(dist,'_routes.json'),JSON.stringify({version:1,include:['/api/*'],exclude:[]}));
   await mkdir(path.join(root,'functions/_generated'),{recursive:true});
   const bundles=Object.fromEntries(published.map(({meta,files})=>[meta.id,{'meta.json':JSON.stringify(meta,null,2)+'\n',...files}]));

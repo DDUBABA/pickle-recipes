@@ -1,5 +1,6 @@
 import {body, json, fail, textField, clientType, requestInfo, sha256} from '../../lib/http.js';
 import {terms} from '../../lib/consent.js';
+import {TOKEN_DAYS} from '../../lib/security.js';
 export async function onRequestPost({request,env}) {
   const data = await body(request,8192);
   if (data.agreed !== true) fail(400,'AGREEMENT_REQUIRED','명시적인 사용자 동의가 필요합니다.');
@@ -12,7 +13,11 @@ export async function onRequestPost({request,env}) {
   const consentId = crypto.randomUUID();
   const consentToken = crypto.randomUUID() + crypto.randomUUID();
   const now = new Date().toISOString(); const info = requestInfo(request);
-  await env.DB.prepare(`INSERT INTO consents (consent_id,terms_version,agreed_at,user_identifier,display_name,client_type,ip_address,user_agent,created_at,consent_token_hash,auto_upload_allowed) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(consentId,terms.termsVersion,now,user,name,type,info.ip,info.agent,now,await sha256(consentToken),data.autoUploadAllowed === true ? 1 : 0).run();
-  return json({ok:true,consentId,consentToken,termsVersion:terms.termsVersion,agreedAt:now,autoUploadAllowed:data.autoUploadAllowed === true},201);
+  const expiresAt=new Date(Date.now()+TOKEN_DAYS*86400000).toISOString();
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO consents (consent_id,terms_version,agreed_at,user_identifier,display_name,client_type,ip_address,user_agent,created_at,consent_token_hash,auto_upload_allowed,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .bind(consentId,terms.termsVersion,now,user,name,type,info.ip,info.agent,now,await sha256(consentToken),data.autoUploadAllowed === true ? 1 : 0,expiresAt),
+    env.DB.prepare('INSERT INTO consent_events(event_id,consent_id,event_type,occurred_at) VALUES(?,?,?,?)').bind(crypto.randomUUID(),consentId,'granted',now)
+  ]);
+  return json({ok:true,consentId,consentToken,termsVersion:terms.termsVersion,agreedAt:now,expiresAt,autoUploadAllowed:data.autoUploadAllowed === true},201);
 }
