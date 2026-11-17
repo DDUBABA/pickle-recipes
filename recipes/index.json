@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "termsVersion": "2026-11-17.1",
+  "guideUrl": "/guide.md",
+  "templateUrl": "/template/",
+  "termsUrl": "/terms.json",
+  "api": {
+    "consent": "/api/consent",
+    "verifyConsent": "/api/consent/verify",
+    "search": "/api/search",
+    "item": "/api/items/{id}",
+    "download": "/api/download",
+    "submit": "/api/submit",
+    "stats": "/api/stats"
+  },
+  "items": []
+}

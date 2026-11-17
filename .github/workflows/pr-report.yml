@@ -1,0 +1,21 @@
+name: PR validation report
+on:
+  workflow_run:
+    workflows: [PR validation]
+    types: [completed]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (run.event !== 'pull_request') return;
+            for (const pr of run.pull_requests || []) {
+              const body = `Pickle Recipes 검사: **${run.conclusion}**\n\n[검사 결과 보기](${run.html_url})\n\n개인정보·위험 코드 스캔은 보조 검사입니다. 병합 전 운영자 검토가 필요합니다.`;
+              await github.rest.issues.createComment({...context.repo, issue_number:pr.number, body});
+            }

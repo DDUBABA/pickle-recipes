@@ -1,0 +1,17 @@
+{
+  "id": "example-service",
+  "name": "서비스 이름",
+  "description": "수행하는 작업을 설명하세요.",
+  "kind": "connector",
+  "status": "active",
+  "version": "1.0",
+  "parentId": null,
+  "relationType": null,
+  "requires": [],
+  "category": "생활",
+  "authType": "none",
+  "keywords": ["일상 동의어"],
+  "author": "public-alias",
+  "tags": ["조회"],
+  "releases": []
+}

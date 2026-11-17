@@ -1,0 +1,6 @@
+# Copy to .dev.vars (ignored). Never commit real secrets.
+GITHUB_APP_ID=
+GITHUB_INSTALLATION_ID=
+GITHUB_APP_PRIVATE_KEY=
+ADMIN_STATS_TOKEN=
+SUBMISSION_METADATA_SECRET=

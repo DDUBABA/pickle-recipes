@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {sensitiveFindings,dangerousFindings,validateFiles,validateMeta,nextVersion} from '../lib/validation.js';
+import {releaseItem} from '../lib/releases.js';
+import {csv} from '../functions/api/stats.js';
+import {meta,files} from './helpers.mjs';
+test('Privacy and dangerous-code regressions',()=>{for(const text of ['010-1234-5678','person@example.com','900101-1234567','123가4567','101동 1001호','ghp_abcdefghijklmnopqrstuvwxyz123456','token = "abcdefghijklmnop"'])assert.ok(sensitiveFindings(text).length,text);for(const code of ['eval ("x")','from os import system as call','import subprocess as sp','getattr(x,"exec")','import pickle','shell = True'])assert.ok(dangerousFindings(code).length,code);assert.deepEqual(validateFiles(files),[]);assert.deepEqual(validateMeta(meta),[]);});
+test('Template passes the same submission file security policy',()=>{const template={'README.md':readFileSync('template/README.md','utf8'),'scripts/service_template.py':readFileSync('template/scripts/service_template.py','utf8')};assert.deepEqual(validateFiles(template),[]);});
+test('Versions roll over without floating-point drift; release is idempotent and conflicts fail',()=>{assert.equal(nextVersion('1.2'),'1.3');assert.equal(nextVersion('1.9'),'2.0');const submission={type:'new',baseVersion:null,submittedBy:'alias',summary:'첫 버전'};const first=releaseItem(null,submission,42,'2026-11-17T00:00:00Z');assert.equal(first.version,'1.0');assert.deepEqual(releaseItem(first,submission,42,'2026-11-17T00:00:00Z'),first);const patch={...submission,type:'patch',baseVersion:'1.0'};assert.equal(releaseItem(first,patch,43,'2026-11-17T00:00:00Z').version,'1.1');assert.throws(()=>releaseItem(first,{...patch,baseVersion:'0.9'},44,'2026-11-17T00:00:00Z'));});
+test('CSV neutralizes spreadsheet formulas and quotes',()=>{assert.match(csv([{user_identifier:'=HYPERLINK("bad")',total_downloads:1}]),/"'=HYPERLINK\(""bad""\)"/);});

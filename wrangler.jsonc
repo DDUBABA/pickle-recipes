@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pickle-recipes",
+  "pages_build_output_dir": "dist",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "pickle-recipes",
+    "database_id": "a86265e8-3489-46a5-996a-1f84f48ec7e5",
+    "migrations_dir": "migrations"
+  }],
+  "vars": {
+    "GITHUB_REPOSITORY": "jkc1832/pickle-recipes",
+    "GITHUB_DEFAULT_BRANCH": "main"
+  }
+}

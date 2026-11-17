@@ -1,0 +1,7 @@
+# Protect these paths with required code-owner review on main.
+/.github/ @jkc1832
+/functions/ @jkc1832
+/lib/ @jkc1832
+/scripts/ @jkc1832
+/terms* @jkc1832
+/wrangler.jsonc @jkc1832

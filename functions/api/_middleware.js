@@ -1,0 +1,15 @@
+import {ApiError, json} from '../../lib/http.js';
+export async function onRequest(context) {
+  try {
+    const origin = context.request.headers.get('Origin');
+    if (origin && origin !== new URL(context.request.url).origin) return json({ok:false,code:'ORIGIN_DENIED',message:'다른 웹사이트의 요청은 허용하지 않습니다.'},403);
+    if (context.request.method === 'OPTIONS') return new Response(null, {status:204,headers:{Allow:'GET, POST, OPTIONS'}});
+    const response = await context.next();
+    if (response.status === 405 || response.status === 404) return json({ok:false,code:'NOT_FOUND_OR_METHOD',message:'API 경로와 HTTP 메서드를 확인해 주세요.'},response.status);
+    return response;
+  } catch(error) {
+    if (error instanceof ApiError) return json({ok:false,code:error.code,message:error.message,...error.extra},error.status);
+    console.error('API failure', error?.name || 'Error');
+    return json({ok:false,code:'SERVICE_UNAVAILABLE',message:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'},503);
+  }
+}
