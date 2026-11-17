@@ -39,9 +39,11 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add recipes sitemap.xml robots.txt .github/release-state.json
           if ! git diff --cached --quiet; then
-            git commit -m 'chore: publish item versions and catalog [skip ci]'
+            git commit -m 'chore: publish item versions and catalog'
             git push origin HEAD:main
           fi
+      - name: Publish the verified production branch for Pages Git integration
+        run: git push origin HEAD:production
       - name: Detect Cloudflare deployment configuration
         id: cloudflare
         env:
@@ -51,7 +53,7 @@ jobs:
           if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
             echo 'ready=true' >> "$GITHUB_OUTPUT"
           else
-            echo 'Cloudflare secrets are not configured; source checks complete, deployment skipped.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Verified production branch published. Direct CLI deployment skipped; Pages Git integration can deploy production.' >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Install locked Wrangler
         if: steps.cloudflare.outputs.ready == 'true'

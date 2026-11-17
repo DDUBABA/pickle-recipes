@@ -75,7 +75,9 @@ node --test tests/*.test.mjs
 
 7. 실서비스에서 `/terms.json`, `/guide.md`, `/api/consent/verify` 미동의 403, 동의 후 검색·다운로드, D1 카운트를 확인합니다. D1 production과 preview는 다른 DB를 사용하고 **PR preview에 운영 GitHub App 키나 관리자 토큰을 주입하지 마세요.** Pages의 Functions 한도 초과 정책은 fail closed로 설정하세요.
 
-Cloudflare Pages의 Git 자동 배포 대신 이 저장소의 Actions에서 확정된 릴리즈를 배포하는 **Direct Upload** 구성을 권장합니다. 생성 직후의 중간 머지와 버전 확정 커밋이 순서 뒤바뀌어 배포되는 일을 방지합니다. `build-index.yml`은 배포 자격정보가 없으면 코드 검사와 커밋까지 완료하고 배포를 건너뛰었다고 표시합니다.
+Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 production branch를 **`production`**으로 지정하세요. Build command는 `node scripts/build.mjs`, output directory는 `dist`, 환경변수는 `NODE_VERSION=22`, `SKIP_DEPENDENCY_INSTALL=1`입니다. 빌드 스크립트는 외부 npm 패키지가 필요하지 않고 Cloudflare가 Functions를 컴파일합니다. Preview branch 배포는 비활성화하세요. Actions가 릴리즈와 검사를 완료한 커밋만 `production` 브랜치에 fast-forward로 올리므로 미확정 main 머지를 자동 배포하지 않습니다.
+
+**Direct Upload**는 대안입니다. 이 경우 위 CLI 명령을 사용하고, Actions에 Cloudflare API 토큰과 계정 ID가 있으면 원격 마이그레이션 및 직접 배포도 수행합니다. API 토큰이 없으면 직접 배포만 건너뛰고 검증된 `production` 브랜치는 항상 발행합니다.
 
 ## GitHub App 봇 설정
 
