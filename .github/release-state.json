@@ -12,7 +12,8 @@
     10,
     11,
     12,
-    13
+    13,
+    14
   ],
   "items": {
     "smartthings-device-control": {
@@ -35,8 +36,17 @@
   },
   "bridges": {
     "dongtan-lakecity-visit-web": {
-      "version": "1.1",
+      "version": "1.2",
       "releases": [
+        {
+          "version": "1.2",
+          "baseVersion": "1.1",
+          "date": "2026-11-17T22:09:24Z",
+          "type": "patch",
+          "summary": "Require AI download URLs for every existing and future bridge",
+          "submittedBy": "DDUBABA",
+          "prNumber": 14
+        },
         {
           "version": "1.1",
           "baseVersion": "1.0",
@@ -56,9 +66,9 @@
           "prNumber": 7
         }
       ],
-      "hash": "97616d8f5e6b108a06e9750e7d335cc0951ab642562b68ca5c9b3be6fd5cb4ee",
+      "hash": "9989bc65270adbe4afac6f093bd66a4366a0735487e427274bf5e32f62fe0994",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T15:16:29Z"
+      "updatedAt": "2026-11-17T22:09:24Z"
     },
     "knocktown-appapi": {
       "version": "1.1",
@@ -87,8 +97,17 @@
       "updatedAt": "2026-11-17T15:16:29Z"
     },
     "smartthings-pat": {
-      "version": "1.1",
+      "version": "1.2",
       "releases": [
+        {
+          "version": "1.2",
+          "baseVersion": "1.1",
+          "date": "2026-11-17T22:09:24Z",
+          "type": "patch",
+          "summary": "Require AI download URLs for every existing and future bridge",
+          "submittedBy": "DDUBABA",
+          "prNumber": 14
+        },
         {
           "version": "1.1",
           "baseVersion": "1.0",
@@ -108,9 +127,9 @@
           "prNumber": 7
         }
       ],
-      "hash": "4b1037543fcbf4471a772378958a05d06ea90d0ada02d982b2402c81a0a33cae",
+      "hash": "f02df8f79fea02289e3b5fe7e247c3dade1f30d299be9167f9b3b269328c75f0",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T15:16:29Z"
+      "updatedAt": "2026-11-17T22:09:24Z"
     }
   }
 }
