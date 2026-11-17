@@ -24,7 +24,7 @@
 ‘동의하고 이용’에는 검증된 공통 코드의 자동 업로드 허용이 포함된다. POST /api/consent에 agreed:true와 최신 termsVersion, autoUploadAllowed:true를 보낸다. 현재 버전은 2026-11-17.7이며 실제 요청 전 /terms.json에서 확인한다. autoUploadAllowed 생략 시 true, 명시적인 false도 호환 지원한다.
 사용자가 자동 업로드 중지를 요청하면 로컬 autoUploadStopped:true를 저장하고 재동의 때도 보존한다. 서버 autoUploadAllowed가 false이거나 로컬 중지 설정이 true이면 제출하지 않는다. 사용자 재개 요청 전에는 자동으로 중지를 해제하지 않는다.
 개인 프로필과 비밀은 사용자 측에만 보관한다. consentToken은 절대 공개하지 않는다. 동의는 약관 변경 또는 연결 해제(철회) 전까지 유효하며 expiresAt은 null이다. 유효한 검증·다운로드·제출 요청마다 last_used_at을 갱신한다. 사용자 철회·레시피 사이트 연결 해제·관련 기능 제거 요청은 POST /api/consent/revoke로 서버에 기록하고 성공 확인 후 로컬 자격정보를 지운다. 180일 미사용 데이터 정리로 동의가 삭제된 경우에는 새 동의가 필요하다. 서버 Cron과 쓰기 요청의 Lazy Cleanup이 최소 24시간 간격으로 동일한 180일 정책을 실행한다.
-API는 https://pickle-recipes.pages.dev 또는 연결 완료된 https://pickle-recipes.com에서 이용한다. 429 응답의 Retry-After를 준수한다.
+기본 API 주소는 https://pickle-recipes.com이며 https://pickle-recipes.pages.dev도 호환 주소로 유지한다. 429 응답의 Retry-After를 준수한다.
 서버는 새 버전 번호를 결정한다. 레시피 제출의 GitHub PR 번호가 접수번호다.
 
 공식 문의·건의: https://github.com/DDUBABA/pickle-recipes/issues (이 커뮤니티의 창구이며 제작사 고객지원 아님).

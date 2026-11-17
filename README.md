@@ -56,7 +56,7 @@ node --test tests/*.test.mjs
    pnpm exec wrangler pages project create pickle-recipes --production-branch main
    ```
 
-4. 실제 Pages 도메인이 `pickle-recipes.pages.dev`와 다르면 `site.config.json`의 `siteUrl`을 수정합니다. `index.html`의 원본 canonical/OG/JSON-LD URL도 함께 수정하거나 빌드의 `SITE_URL` 환경변수를 지정합니다. 사이트 URL은 임의의 존재하지 않는 주소로 확정하지 마세요.
+4. 기본 주소는 `https://pickle-recipes.com`이며 `https://pickle-recipes.pages.dev`도 호환 주소로 유지합니다. 주소를 변경할 때는 `site.config.json`의 `siteUrl`과 `index.html`의 canonical/OG/JSON-LD URL을 함께 수정합니다. 빌드의 `SITE_URL`로 출력 주소를 재정의할 수 있습니다.
 
 5. 아래 런타임 비밀값을 Pages 프로젝트 **production** 환경에 등록합니다. 대시보드 Settings → Variables and Secrets 또는 `pnpm exec wrangler pages secret put NAME --project-name pickle-recipes`를 사용합니다. 개인키는 PEM 전체이며 실제 줄바꿈과 `\n` 모두 지원합니다.
 
@@ -223,4 +223,4 @@ Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 
 
 ## 로그인 브릿지
 
-[브릿지 목록](https://pickle-recipes.pages.dev/bridge/)과 `/bridge/index.json`에서 공통 로그인 설정을 찾습니다. 기존 `DDUBABA/pickle-loginbridge` 엔진과 3개 사이트 설정을 통합했으며 비밀값은 브라우저에서만 처리합니다. API 제출은 `type: "bridge"`, `files: {"sites/<siteId>.json": "JSON 문자열"}` 형식의 단일 JSON만 허용합니다. 세부 규격과 호스트 호환성은 [가이드](guide.md#9-로그인-브릿지-생성공개-제출), 운영 연결은 [브릿지 배포 문서](docs/bridge-deployment.md)를 참고하세요.
+[브릿지 목록](https://pickle-recipes.com/bridge/)과 `/bridge/index.json`에서 공통 로그인 설정을 찾습니다. 기존 `DDUBABA/pickle-loginbridge` 엔진과 3개 사이트 설정을 통합했으며 비밀값은 브라우저에서만 처리합니다. API 제출은 `type: "bridge"`, `files: {"sites/<siteId>.json": "JSON 문자열"}` 형식의 단일 JSON만 허용합니다. 세부 규격과 호스트 호환성은 [가이드](guide.md#9-로그인-브릿지-생성공개-제출), 운영 연결은 [브릿지 배포 문서](docs/bridge-deployment.md)를 참고하세요.

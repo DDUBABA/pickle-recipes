@@ -21,6 +21,8 @@ node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bridge.jsonc
 
 ## 도메인 연결
 
+운영 상태: `https://pickle-recipes.com`은 Pages에 연결되어 HTTPS로 서비스 중이다. 호환용 Pages 주소도 유지한다. `*.login` CNAME과 `*.login.pickle-recipes.com/*` Worker route는 생성했으며 요청 제한 시 차단한다. 브릿지 전용 URL 전환은 별도 인증서 활성화를 기다린다. 도메인 자동 갱신은 꺼져 있고 WHOIS 개인정보 가림은 켜져 있다. DNSSEC 활성화를 요청했다.
+
 `pickle-recipes.com` 소유권과 Cloudflare zone이 활성화된 뒤 Pages의 커스텀 도메인으로 apex를 연결한다. Pages가 요구하는 DNS 레코드·인증서가 활성화되어야 한다. 이 시점까지 기존 `pickle-recipes.pages.dev`는 유지한다. API는 두 origin만 허용하고 브릿지 호스트에서 커뮤니티 API를 호출하지 않는다.
 
 와일드카드는 proxied `*.login` DNS 레코드와 Worker route가 필요하다. DNS 대상은 기존 Pages 호스트로 설정하되 라우트가 요청을 처리하도록 한다. 준비 후:

@@ -116,7 +116,7 @@ API가 실제 GitHub PR을 만든 뒤 `receiptNumber`와 `prNumber`(동일한 PR
 
 ## 8. 공식 문의·건의 (GitHub 계정 불필요)
 
-이 커뮤니티의 공식 창구는 [문의·건의하기](https://github.com/DDUBABA/pickle-recipes/issues)다. 피클 제작사의 고객지원이 아니다. GitHub 계정이 없으면 [웹 폼](/#feedback) 또는 `POST https://pickle-recipes.pages.dev/api/feedback`을 사용한다. 문의에는 다운로드·공유 동의가 필요하지 않으며 `Authorization`, 동의 토큰, 이메일을 보내지 않는다. AI는 사용자가 요청한 의견만 제출한다.
+이 커뮤니티의 공식 창구는 [문의·건의하기](https://github.com/DDUBABA/pickle-recipes/issues)다. 피클 제작사의 고객지원이 아니다. GitHub 계정이 없으면 [웹 폼](/#feedback) 또는 `POST https://pickle-recipes.com/api/feedback`을 사용한다. 문의에는 다운로드·공유 동의가 필요하지 않으며 `Authorization`, 동의 토큰, 이메일을 보내지 않는다. AI는 사용자가 요청한 의견만 제출한다.
 
 `Content-Type: application/json`으로 다음 객체를 보낸다.
 
@@ -139,7 +139,7 @@ IP(IPv6는 /64) 기준 5회/시간, 서비스 전체 100회/시간이며 기본 
 
 ## 9. 호출 제한·보관 정책·통계와 오류
 
-API는 `https://pickle-recipes.pages.dev`에서 호출한다. 배포별 주소는 이용하지 않는다. `429 RATE_LIMITED`가 반환되면 `Retry-After` 초만큼 대기한다. IP별 기본 제한은 120회/분, 동의 생성 5회/시간, 제출 3회/시간, 다운로드 30회/분이다. 토큰별 및 서비스 전체 한도도 적용되므로 반복 재시도나 식별자 변경으로 우회하지 않는다.
+API는 `https://pickle-recipes.com`에서 호출한다. 배포별 주소는 이용하지 않는다. `429 RATE_LIMITED`가 반환되면 `Retry-After` 초만큼 대기한다. IP별 기본 제한은 120회/분, 동의 생성 5회/시간, 제출 3회/시간, 다운로드 30회/분이다. 토큰별 및 서비스 전체 한도도 적용되므로 반복 재시도나 식별자 변경으로 우회하지 않는다.
 
 동의는 약관 변경 또는 연결 해제(철회) 전까지 유효하며 고정 만료일은 없습니다. 다만 개인정보 보관을 최소화하기 위해 철회 후 180일이 지난 동의와 최근 활동(last_used_at) 기준 180일 이상 미사용한 미철회 동의는 식별자·토큰 해시·관련 동의 이력 및 다운로드 상세 기록과 함께 삭제합니다. 최근 활동한 미철회 동의는 유지합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 각 기록 시점부터 180일이 지나면 삭제하고, 항목별 누적 다운로드 수는 유지합니다. 서버의 일일 정리 또는 쓰기 요청 시 정리로 처리하며 정리 간격은 최소 24시간입니다. 삭제된 동의로 다시 다운로드·제출하려면 새 동의가 필요합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.
 
