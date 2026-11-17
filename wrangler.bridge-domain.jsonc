@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pickle-recipes-bridge-router",
+  "main": "workers/bridge-router/index.js",
+  "compatibility_date": "2026-11-17",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{"pattern":"*.login.pickle-recipes.com/*","zone_name":"pickle-recipes.com"}],
+  "observability": {"enabled": false}
+}

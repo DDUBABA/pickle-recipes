@@ -1,9 +1,12 @@
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {readItems} from './catalog.mjs';
+import {readBridges} from './bridges.mjs';
 import {validateMeta,validateFiles,validateDependencies,sensitiveFindings} from '../lib/validation.js';
 export async function validate(root=process.cwd()) {
+  const bridges=await readBridges(root);
   const items=await readItems(root); const errors=[];
+  for(const site of bridges)if(items.some(({meta})=>meta.id===site.siteId))errors.push(`Duplicate item ID: ${site.siteId}`);
   for(const {meta,files} of items) for(const message of [...validateMeta(meta),...validateFiles(files),...validateDependencies(meta,items.map(item=>item.meta)),...sensitiveFindings(JSON.stringify(meta)).map(label=>`meta: ${label}`)])errors.push(`${meta.id}: ${message}`);
   for(const {meta} of items)if(meta.parentId && meta.parentId!==meta.id && !items.some(item=>item.meta.id===meta.parentId))errors.push(`${meta.id}: parentId not found`);
   if(errors.length)throw new Error(errors.join('\n'));

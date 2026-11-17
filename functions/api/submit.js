@@ -2,7 +2,8 @@ import {body,fail,json,textField} from '../../lib/http.js';
 import {verifyConsent} from '../../lib/consent.js';
 import {catalog,normalize} from '../../lib/catalog.js';
 import {validateMeta,validateFiles,validateDependencies,sensitiveFindings,VERSION} from '../../lib/validation.js';
-import {openSubmission} from '../../lib/github.js';
+import {openSubmission,openBridgeSubmission} from '../../lib/github.js';
+import {bridgeSubmission} from '../../lib/bridge.js';
 export async function onRequestPost(context) {
   const data=await body(context.request);
   const consent=await verifyConsent(context,data);
@@ -10,6 +11,23 @@ export async function onRequestPost(context) {
   const submittedBy=textField(data.submittedBy,'submittedBy');
   if(!/^[a-zA-Z0-9가-힣_-]{1,60}$/u.test(submittedBy)) fail(400,'INVALID_HANDLE','submittedBy에는 연락처 대신 공개용 별칭을 사용해 주세요.');
   const summary=textField(data.summary,'summary',1000);
+  if(sensitiveFindings(summary+' '+submittedBy).length)fail(400,'VALIDATION_FAILED','공개 별칭·요약에서 개인정보를 제거해 주세요.');
+  if(data.type==='bridge'){
+    const {site,errors}=bridgeSubmission(data);
+    const changeType=data.changeType??'new';
+    if(changeType==='new'?data.baseVersion!==null:!VERSION.test(data.baseVersion||''))errors.push('신규는 baseVersion:null, 패치는 최신 버전이 필요합니다.');
+    if(errors.length)fail(400,'VALIDATION_FAILED','브릿지 규격을 확인해 주세요.',{errors});
+    const current=catalog.items.find(item=>item.id===site.siteId);
+    if(changeType==='new'&&current)fail(409,'DUPLICATE_ITEM','동일한 ID가 있습니다.');
+    if(changeType==='patch'&&(!current||current.kind!=='bridge'||current.version!==data.baseVersion))fail(409,'VERSION_CONFLICT','최신 브릿지를 확인해 주세요.');
+    const result=await openBridgeSubmission(context.env,{...data,site,changeType,submittedBy,summary});
+    return json({ok:true,...result,message:'브릿지 JSON PR이 접수되었습니다. 검토·병합 후 배포됩니다.'},201);
+  }
+  // New clients separate artifact type from change type; preserve the original API.
+  if(['connector','recipe'].includes(data.type)){
+    if(data.meta?.kind!==data.type)fail(400,'INVALID_KIND','type과 meta.kind가 일치해야 합니다.');
+    data.type=data.changeType??'new';
+  }
   if(!['new','patch','remix','adapt'].includes(data.type)) fail(400,'INVALID_TYPE','type은 new, patch, remix, adapt입니다.');
   if(data.type==='new' ? data.baseVersion!==null : !VERSION.test(data.baseVersion || '')) fail(400,'INVALID_BASE_VERSION','신규는 baseVersion:null, 나머지는 기준 버전이 필요합니다.');
   if('version' in data) fail(400,'SERVER_MANAGED_VERSION','새 버전은 서버가 결정합니다.');

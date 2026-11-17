@@ -39,7 +39,7 @@ function renderEmpty(title,description){
 function renderCards(items){
   $('#catalog').replaceChildren(...items.map(item=>{
     const card=el('article',undefined,'card');const top=el('div',undefined,'card-top');
-    top.append(el('span',item.kind==='connector'?'↗ 커넥터':'≋ 레시피',`badge ${item.kind}`),el('span',`v${item.version}`,'version'));
+    top.append(el('span',item.kind==='bridge'?'↪ 로그인 브릿지':item.kind==='connector'?'↗ 커넥터':'≋ 레시피',`badge ${item.kind}`),el('span',`v${item.version}`,'version'));
     const tags=el('div',undefined,'tags');tags.append(...item.tags.slice(0,4).map(tag=>el('span',`#${tag}`)));
     const bottom=el('div',undefined,'card-bottom');const detail=el('button','자세히 보기 ↗');detail.onclick=()=>showDetail(item.id);
     bottom.append(el('span',`⬇ 총 다운로드 ${item.totalDownloads.toLocaleString('ko-KR')}`),detail);
@@ -64,6 +64,12 @@ async function showDetail(id){
   try{
     const {item}=await api(`/api/items/${encodeURIComponent(id)}`);const content=$('#detail-content');content.replaceChildren();
     const title=el('h2',item.name);title.id='detail-name';
+    if(item.kind==='bridge'){
+      content.append(el('p','LOGIN BRIDGE','eyebrow'),title,el('p',item.description),el('p','로그인 정보는 브라우저에서 처리하며 연결 파일을 서버에 올리지 않습니다.'));
+      const link=el('a','전용 로그인 브릿지 열기 ↗','primary button');link.href=item.bridgeUrl;link.target='_blank';link.rel='noopener noreferrer';content.append(link);
+      const preview=el('a','이 사이트에서 브릿지 확인하기','outline button');preview.href=`/bridge/?site=${encodeURIComponent(item.id)}${item.config.requireDownloadParam?'&download=1':''}`;content.append(preview);
+      if(!$('#detail-dialog').open)$('#detail-dialog').showModal();return;
+    }
     content.append(el('p',item.kind==='connector'?'CONNECTOR':'RECIPE','eyebrow'),title,el('p',item.description,'detail-description'),el('p',`v${item.version} · ${item.category} · ${item.authType} · ⬇ ${item.totalDownloads.toLocaleString('ko-KR')}`,'detail-meta'));
     if(item.status==='deprecated')content.append(el('p','지원 종료 예정인 항목입니다. 대체 항목을 우선 확인하세요.','form-error'));
     if(item.requires.length){content.append(el('h3','필요한 커넥터'));const list=el('div',undefined,'tags');for(const dependency of item.requires){const button=el('button',dependency,'outline');button.onclick=()=>showDetail(dependency);list.append(button);}content.append(list);}

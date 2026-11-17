@@ -7,7 +7,7 @@ Pickle Recipes는 사용자가 피클 커넥터·레시피를 검색·설치·�
 
 ## 1. 구성
 
-- 로그인 브릿지: 자동 로그인이 막힌 서비스의 인증·키 전달을 돕는 별도의 정적 다리.
+- bridge: `/bridge/`에서 제공하는 공통 정적 로그인 브릿지. 검증된 사이트 JSON으로 연결 파일을 생성한다.
 - connector: 하나의 서비스에 로그인·조회·실행하는 독립 부품. 단독 CLI와 `--json` 표준 출력을 지원한다.
 - recipe: 하나 이상의 커넥터를 순서대로 조합한 흐름. `requires`에 커넥터 ID를 명시한다.
 
@@ -42,7 +42,7 @@ Pickle Recipes는 사용자가 피클 커넥터·레시피를 검색·설치·�
 ### 동의 기록 요청
 
 ```json
-{"termsVersion":"2026-11-17.6","agreed":true,"userIdentifier":"local-random-handle","clientType":"pickle","autoUploadAllowed":true}
+{"termsVersion":"2026-11-17.7","agreed":true,"userIdentifier":"local-random-handle","clientType":"pickle","autoUploadAllowed":true}
 ```
 
 `termsVersion`은 예시를 고정 사용하지 말고 `/terms.json`의 최신 값으로 보낸다. `displayName`은 선택이다. 식별자는 비밀 인증 수단이나 실명 인증이 아니며 공개 별칭과 달라도 된다.
@@ -147,3 +147,35 @@ API는 `https://pickle-recipes.pages.dev`에서 호출한다. 배포별 주소�
 `GET /api/stats?group=items|daily|versions|users&format=json|csv&limit=100&offset=0`.
 daily/versions/users에는 `Authorization: Bearer <ADMIN_STATS_TOKEN>`이 필요하며 관리자 토큰 미설정 시에도 닫힌다. items 집계는 동의 없이 조회 가능하다. UI 카드 집계는 search/items 응답에 포함된다.
 400 규격/보안 오류, 403 미동의/약관 변경/차단, 404 항목 없음, 409 버전·중복 충돌, 413 크기 초과, 415 JSON 형식, 502 GitHub 오류, 503 설정·저장소 장애를 처리한다. 실패를 성공으로 추정하지 않는다.
+
+## 9. 로그인 브릿지 생성·공개 제출
+
+먼저 `/bridge/index.json` 또는 `GET /api/search?type=bridge&q=<서비스>`에서 중복을 확인한다. 상세는 `GET /api/items/<siteId>?type=bridge`이며 공개 설정은 `/bridge/sites/<siteId>.json`이다. 동일 서비스는 기존 브릿지를 재사용하거나 최신 `version`을 기준으로 패치한다.
+
+`POST /api/submit`의 새 형식은 `type: "connector" | "recipe" | "bridge"`와 `changeType`을 분리한다. 커넥터·레시피는 기존 meta/files와 `changeType: new|patch|remix|adapt`를 사용한다. 이전 `type: new|patch|remix|adapt` 요청도 계속 지원한다.
+
+브릿지는 최신 공개 제출 동의가 있어야 하며 기존 Authorization·X-Consent-Id·X-Terms-Version 헤더를 사용한다. 본문 형식:
+
+```json
+{
+  "type": "bridge",
+  "changeType": "new",
+  "siteId": "example-pat",
+  "baseVersion": null,
+  "submittedBy": "public-alias",
+  "summary": "공식 토큰을 연결 파일로 변환하는 공통 설정",
+  "consentId": "<공개 동의 ID>",
+  "termsVersion": "<현재 약관 버전>",
+  "files": {"sites/example-pat.json": "<JSON.stringify로 직렬화한 사이트 설정>"}
+}
+```
+
+`files`는 `sites/<siteId>.json` 한 개만 허용한다. HTML·JS·README·스크립트·추가 파일 및 메타 필드는 금지한다. 브릿지 패치는 `changeType: "patch"`, 최신 `baseVersion`을 지정한다. 서버는 `bridge/sites/<siteId>.json`만 변경하는 서명된 PR을 만들고, CI는 변경 경로·버전·JSON 규격을 다시 검사한다. 병합 후 버전·인덱스·호스트 목록을 자동 생성한다. 새로운 도메인이나 유료 자원을 생성하는 권한은 제출 API에 없다.
+
+스키마는 `/bridge/sites/_schema.json`이며, 의미 검증이 추가로 적용된다. `siteId`는 최대 43자, 영문 소문자·숫자와 단일 하이픈으로 이루어진 최소 두 구간이다. 예: `smartthings-pat`, `knocktown-appapi`, `dongtan-lakecity-visit-web`. 파일명과 ID가 일치해야 한다. `mode`는 `api_token`, `config_download`, `token_convert`만 허용한다. 비밀번호·토큰 필드는 password/current-password를 사용한다. `api.url`은 사용자 정보·쿼리·프래그먼트·비표준 포트가 없는 공개 HTTPS DNS 호스트만 허용하며 localhost·내부 도메인·IPv4/IPv6 리터럴·정수/16진수 IP 우회는 거부한다. 서버가 외부 로그인 URL로 요청을 중계하지 않는다. API 목적지 소유권·정상 공개 DNS·CORS는 운영자가 PR에서 확인한다.
+
+설정 템플릿은 `$field` 또는 명시적 키 배열의 `$response`만 지원한다. 실제 사용자명·이메일·비밀번호·토큰·개인 프로필·연결 파일을 JSON에 넣지 않는다. 공개 공통 설정만 제출한다. URL·설명·라벨도 개인정보 검사를 받는다. 검사로 모든 민감정보를 찾을 수 없으므로 제출 전 직접 확인한다.
+
+`/bridge/`는 목록, `/bridge/?site=<siteId>`는 확인용 폼이다. 전용 호스트 `<siteId>.login.pickle-recipes.com`과 기존 `pickle-loginbridge--<siteId>.pages.dev`는 호스트로 사이트를 선택하며 `?site=`로 다른 사이트로 바꿀 수 없다. `requireDownloadParam:true`는 `?download=1`에서만 입력과 제출을 활성화한다. 전용 호스트의 연결·인증서가 완료되기 전에는 인덱스에 표시된 기존 주소를 사용한다.
+
+로그인 정보·API 응답·생성 JSON은 화면·로그·localStorage·sessionStorage·쿠키에 복사하지 않는다. 마스킹 입력값과 처리 중 메모리는 완료·실패·초기화·이탈 때 비운다. `config_download`와 `token_convert`는 로컬 파일만 생성하고, `api_token`은 사용자의 브라우저에서 선언된 외부 API로 직접 요청한다. CORS 오류를 서버 프록시로 우회하지 않는다. AI는 사용자가 요청한 연결만 진행하며 로그인·OTP·비밀번호 입력·최종 계정 연결은 해당 환경의 사용자 승인 절차를 따른다. 생성된 비밀 파일을 이 저장소에 업로드하지 않는다.

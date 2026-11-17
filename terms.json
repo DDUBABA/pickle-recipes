@@ -1,5 +1,5 @@
 {
-  "termsVersion": "2026-11-17.6",
+  "termsVersion": "2026-11-17.7",
   "effectiveAt": "2026-11-17T00:00:00Z",
   "termsUrl": "/terms.html",
   "disclaimerUrl": "/terms.html#disclaimer",
@@ -103,5 +103,21 @@
     "userAgentStored": false,
     "rateLimitIdentity": "daily HMAC of client address; expired buckets cleaned",
     "automaticReply": false
+  },
+  "bridge": {
+    "directoryUrl": "/bridge/",
+    "indexUrl": "/bridge/index.json",
+    "modes": [
+      "api_token",
+      "config_download",
+      "token_convert"
+    ],
+    "credentialStorage": "browser memory only; no server storage, DOM copies, logs or Web Storage",
+    "apiModeDestination": "declared third-party HTTPS API directly from the browser; no server proxy",
+    "localModes": "local JSON download only",
+    "publicSubmissions": "one validated sites/<siteId>.json; never credentials, HTML or JavaScript",
+    "consentRequiredFor": "public JSON submission",
+    "credentialEntry": "explicit user interaction",
+    "downloadNotice": "downloaded files contain secrets; keep on user device"
   }
 }

@@ -47,7 +47,7 @@ test('Non-boolean upload permission and absent agreement never create consent ev
 });
 
 test('Previous terms require reconsent without upgrading old upload choices or rewriting evidence',async()=>{
-  assert.equal(terms.termsVersion,'2026-11-17.6');
+  assert.equal(terms.termsVersion,'2026-11-17.7');
   const {env,consent,headers}=await setup();
   env.DB.db.prepare('UPDATE consents SET terms_version=?,auto_upload_allowed=0 WHERE consent_id=?').run('2026-11-17.4',consent.consentId);
   const oldRecord=env.DB.db.prepare('SELECT * FROM consents').get();
@@ -55,7 +55,7 @@ test('Previous terms require reconsent without upgrading old upload choices or r
   assert.equal(denied.status,403);assert.equal((await denied.json()).requiresReconsent,true);
   const outdated=await call(consentPost,request('/api/consent',payload({termsVersion:'2026-11-17.4',agreed:true,userIdentifier:'old-version-test'})),env);
   assert.equal(outdated.status,409);const error=await outdated.json();
-  assert.equal(error.termsVersion,'2026-11-17.6');assert.equal(error.requiresReconsent,true);
+  assert.equal(error.termsVersion,'2026-11-17.7');assert.equal(error.requiresReconsent,true);
   assert.deepEqual(env.DB.db.prepare('SELECT * FROM consents').get(),oldRecord);
   assert.equal(env.DB.db.prepare('SELECT COUNT(*) AS n FROM consent_events').get().n,1);
 });
