@@ -33,11 +33,11 @@ DNS는 proxied CNAME `*` → `pickle-recipes.pages.dev`, Worker route는 `*.pick
 node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bridge-domain.jsonc
 ```
 
-각 `bridge/sites/*.json`의 `bridgeUrl`은 `https://loginbridge--<siteId>.pickle-recipes.com/`이며 `requireDownloadParam` 사이트의 `?download=1`을 유지한다. 변경은 PR 검증·릴리즈를 거쳐 배포한다. 기존 `pickle-loginbridge--<siteId>.pages.dev` 호스트와 `/bridge/?site=<siteId>`는 계속 지원한다. 메인 API 허용 origin과 브릿지 CSP의 외부 API 목록은 이 주소 전환으로 확장하지 않는다. 추가 환경변수·비밀값은 필요하지 않다.
+각 `bridge/sites/*.json`의 `bridgeUrl`은 `https://loginbridge--<siteId>.pickle-recipes.com/`이며 모든 사이트에 `?download=1`을 포함한다. 변경은 PR 검증·릴리즈를 거쳐 배포한다. 기존 `pickle-loginbridge--<siteId>.pages.dev` 호스트와 `/bridge/?site=<siteId>`는 계속 지원한다. 메인 API 허용 origin과 브릿지 CSP의 외부 API 목록은 이 주소 전환으로 확장하지 않는다. 추가 환경변수·비밀값은 필요하지 않다.
 
 Wrangler 인증에 zone route 권한이 없으면 대시보드에서 route를 관리하고, 코드만 `wrangler versions upload -c wrangler.bridge.jsonc` 후 `wrangler versions deploy <version-id>@100% -c wrangler.bridge.jsonc --yes`로 배포한다. 새 버전 업로드만으로 트래픽이나 route는 변경되지 않는다.
 
-웹 목록·상세 링크는 `download` 파라미터를 제거한 `displayUrl`을 사용한다. 빌드가 모든 브릿지에 `download=1`을 붙인 `downloadUrl`도 생성하며 피클 AI는 이 값을 사용한다. 이 필드들은 공통 엔진에서 파생하므로 제출 JSON에 별도 입력하지 않는다. 원본 `bridgeUrl`과 `requireDownloadParam`의 검증·허용 조건은 유지한다. URL 표시와 실행 안내를 바꾸는 데 DNS나 Worker 설정 변경은 필요하지 않다.
+웹 목록·상세 링크는 `download` 파라미터를 제거한 `displayUrl`을 사용한다. 빌드가 모든 브릿지에 `download=1`을 붙인 `downloadUrl`도 생성하며 피클 AI는 이 값을 사용한다. 이 필드들은 공통 엔진에서 파생하므로 제출 JSON에 별도 입력하지 않는다. 모든 사이트 JSON은 `requireDownloadParam:true` 및 단일 `download=1`이 포함된 `bridgeUrl`을 요구한다. 일반 주소에는 입력 폼·파일 받기·허용 링크가 없으며, AI 실행 주소에서만 입력·파일 생성이 가능하다. 이 파라미터는 공개된 흐름 구분값이며 AI 신원을 인증하지 않는다. URL 표시와 실행 안내를 바꾸는 데 DNS나 Worker 설정 변경은 필요하지 않다.
 
 ## 검증과 한계
 

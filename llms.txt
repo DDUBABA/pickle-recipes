@@ -42,5 +42,5 @@ IP별 5회/시간(IPv6 /64), 서비스 전체 100회/시간과 공통 제한. 42
 - 제출 POST /api/submit: type=bridge, changeType=new|patch, siteId, baseVersion(null 또는 최신 버전), submittedBy, summary, consentId, termsVersion, files={"sites/<siteId>.json":"JSON 문자열"}. 기존 공개 제출 동의·인증 헤더 필요.
 - type=connector|recipe와 changeType=new|patch|remix|adapt도 지원. 이전 type=new|patch|remix|adapt 형식은 호환 유지.
 - 브릿지에는 HTML/JS·추가 파일·실제 계정·토큰·연결 파일 금지. mode=api_token|config_download|token_convert. siteId 최대43자 소문자·숫자·단일 하이픈 최소2구간. api.url은 공개 HTTPS DNS 주소만 허용; 내부 호스트·IP·위험 스킴·URL 자격정보 금지.
-- 전용 loginbridge--<siteId>.pickle-recipes.com과 pickle-loginbridge--<siteId>.pages.dev는 호스트가 ?site=보다 우선. /bridge/?site=<siteId> 확인용. requireDownloadParam=true이면 download=1 필요.
+- 전용 loginbridge--<siteId>.pickle-recipes.com과 pickle-loginbridge--<siteId>.pages.dev는 호스트가 ?site=보다 우선. /bridge/?site=<siteId> 확인용. 모든 모드에서 requireDownloadParam=true 필수. 정확히 하나의 download=1이 있어야 입력·파일 생성 가능. 일반 접속에서는 폼·다운로드·허용 링크 없이 피클 AI 연결을 안내한다. 파라미터는 AI 신원 인증 수단이 아니다.
 - 로그인 정보는 서버에 저장·중계하지 않음. DOM 사본·로그·웹 저장소 금지. 로컬 모드는 파일만 생성, api_token은 해당 외부 서비스로 브라우저가 직접 전송. 사용자 로그인·OTP를 대신하거나 CORS를 우회하지 않는다.

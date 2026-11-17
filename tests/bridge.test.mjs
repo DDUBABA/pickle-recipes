@@ -53,15 +53,22 @@ test('Dedicated hosts override query site and nested hosts fail closed',()=>{
 test('Canonical and legacy bridge URLs agree with schema and site identity',async()=>{
   const schema=JSON.parse(await readFile('bridge/sites/_schema.json','utf8'));
   const pattern=new RegExp(schema.properties.bridgeUrl.pattern);
-  for(const bridgeUrl of ['https://loginbridge--smartthings-pat.pickle-recipes.com/','https://pickle-loginbridge--smartthings-pat.pages.dev/']){
+  for(const bridgeUrl of ['https://loginbridge--smartthings-pat.pickle-recipes.com/?download=1','https://pickle-loginbridge--smartthings-pat.pages.dev/?download=1']){
     assert.equal(pattern.test(bridgeUrl),true);assert.deepEqual(validateBridge({...site,bridgeUrl}),[]);
   }
   for(const bridgeUrl of ['https://smartthings-pat.login.pickle-recipes.com/','https://loginbridge--smartthings-pat.pickle-recipes.com.evil.example/','https://loginbridge--smartthings-pat.pickle-recipes.com/api/','https://loginbridge--smartthings-pat.pickle-recipes.com/?token=secret']){
     assert.equal(pattern.test(bridgeUrl),false);assert.ok(validateBridge({...site,bridgeUrl}).length);
   }
   assert.ok(validateBridge({...site,bridgeUrl:'https://loginbridge--other-site.pickle-recipes.com/'}).length);
-  const gated=sites.find(s=>s.requireDownloadParam);
-  assert.ok(validateBridge({...gated,bridgeUrl:gated.bridgeUrl.replace('?download=1','')}).length);
+  assert.equal(schema.properties.requireDownloadParam.const,true);assert.ok(schema.required.includes('requireDownloadParam'));
+  for(const gated of sites){
+    assert.equal(gated.requireDownloadParam,true);
+    const plain=gated.bridgeUrl.replace('?download=1','');
+    assert.equal(pattern.test(plain),false);assert.ok(validateBridge({...gated,bridgeUrl:plain}).length);
+    assert.ok(validateBridge({...gated,bridgeUrl:gated.bridgeUrl+'&download=1'}).length);
+    assert.ok(validateBridge({...gated,requireDownloadParam:false}).length);
+    const missing={...gated};delete missing.requireDownloadParam;assert.ok(validateBridge(missing).length);
+  }
 });
 
 test('Wildcard routing rejects unrelated, malformed and retired hosts before upstream fetch',async()=>{
@@ -104,7 +111,7 @@ test('Bridge router returns only fixed diagnostics for upstream parsing failures
 });
 
 test('Search and item APIs support bridge while preserving kind compatibility',async()=>{
-  const fixture={...site,siteId:'search-test-bridge',bridgeUrl:'https://pickle-loginbridge--search-test-bridge.pages.dev/'};
+  const fixture={...site,siteId:'search-test-bridge',bridgeUrl:'https://pickle-loginbridge--search-test-bridge.pages.dev/?download=1'};
   const item=bridgeItem(fixture);catalog.items.push(item);bundles[item.id]={[`sites/${item.id}.json`]:JSON.stringify(fixture)};
   try{
     const search=searchItems([item],new URLSearchParams('type=bridge'));assert.equal(search.total,1);
@@ -118,13 +125,19 @@ test('Search and item APIs support bridge while preserving kind compatibility',a
 });
 test('Submission endpoint validates bridge before any GitHub request and honors consent',async()=>{
   const env={DB:new D1()};const consent=await(await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'bridge-test',clientType:'web'})),env)).json();
-  const newSite={...site,siteId:'submission-new-bridge',bridgeUrl:'https://pickle-loginbridge--submission-new-bridge.pages.dev/'};
+  const newSite={...site,siteId:'submission-new-bridge',bridgeUrl:'https://pickle-loginbridge--submission-new-bridge.pages.dev/?download=1'};
   const data={...input,siteId:newSite.siteId,files:{[`sites/${newSite.siteId}.json`]:JSON.stringify(newSite)},consentId:consent.consentId,termsVersion:consent.termsVersion};
   assert.equal((await call(submit,request('/api/submit',payload(data)),env)).status,403);
   env.DB.db.exec('DELETE FROM rate_limits');
   const rejected=await call(submit,request('/api/submit',payload({...data,files:{...input.files,'app.js':'alert(1)'}},credentials(consent))),env);assert.equal(rejected.status,400);
   env.DB.db.exec('DELETE FROM rate_limits');
   const valid=await call(submit,request('/api/submit',payload(data,credentials(consent))),env);assert.equal(valid.status,503);assert.equal((await valid.json()).code,'GITHUB_NOT_CONFIGURED');
+  for(const value of [false,undefined]){
+    env.DB.db.exec('DELETE FROM rate_limits');
+    const disabled={...newSite,requireDownloadParam:value};
+    const result=await call(submit,request('/api/submit',payload({...data,files:{[`sites/${newSite.siteId}.json`]:JSON.stringify(disabled)}},credentials(consent))),env);
+    assert.equal(result.status,400);
+  }
 });
 test('GitHub bridge submission creates exactly one JSON blob with signed head metadata',async()=>{
   const {privateKey}=generateKeyPairSync('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pkcs8',format:'pem'},publicKeyEncoding:{type:'spki',format:'pem'}});
