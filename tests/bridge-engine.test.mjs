@@ -95,6 +95,16 @@ test('mapped host takes priority over an attacker-supplied site query', async ()
   assert.equal(app.input('username'), undefined);
 });
 
+test('canonical host loads its site without host-map assistance and enforces download gate',async()=>{
+  const app=await boot('https://loginbridge--smartthings-pat.pickle-recipes.com/?site=knocktown-appapi');
+  assert.ok(app.input('token'));assert.equal(app.input('username'),undefined);
+  const gated=await boot('https://loginbridge--knocktown-appapi.pickle-recipes.com/');
+  assert.equal(gated.elements.find(e=>e.type==='submit').disabled,true);
+  await gated.submit();assert.equal(gated.requests.length,2);assert.equal(gated.downloads.length,0);
+  const enabled=await boot('https://loginbridge--knocktown-appapi.pickle-recipes.com/?download=1');
+  assert.ok(enabled.input('username'));
+});
+
 test('local config download preserves escaped text and leading zeros, and releases secrets', async () => {
   const app = await boot('http://localhost:8000/?site=dongtan-lakecity-visit-web');
   const password = 'fake-"\\\n</script><img src=x>';

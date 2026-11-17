@@ -7,7 +7,7 @@
 - Pages `pickle-recipes`: 기존 `production` 브랜치의 검증된 정적 브릿지·설정·API를 배포한다.
 - `Release and build index`: 서명된 `submissions/*` PR의 단일 JSON 경로, 정확한 head, 최신 기준 버전을 검증하고 브릿지 릴리즈 해시를 기록한다. 저장소 소유자의 통합 PR은 운영 코드 검토를 거친다.
 - 빌드는 검토된 해시와 일치하는 JSON만 공개하며 `recipes/index.json`, `bridge/index.json`, 루트와 브릿지의 `hosts.json`을 생성한다. API CSP 출처도 공개된 설정에서만 생성한다.
-- Worker `pickle-recipes-bridge-router`: `*.login.pickle-recipes.com/*` 요청의 사이트 ID를 확인하고 이 Pages의 공개 브릿지 파일만 전달한다. 입력값·쿠키·Authorization·쿼리·POST 본문을 전달하지 않는다. 미등록 사이트·API 경로는 거부한다. 로그인 API를 프록시하지 않는다.
+- Worker `pickle-recipes-bridge-router`: `*.pickle-recipes.com/*` 중 `loginbridge--<siteId>.pickle-recipes.com`만 허용하고 이 Pages의 공개 브릿지 파일만 전달한다. 정확한 호스트 형식과 공개 인덱스의 사이트 ID를 모두 확인한다. 다른 서브도메인·중첩 호스트·미등록 사이트·API 경로는 거부한다. 입력값·쿠키·Authorization·쿼리·POST 본문을 전달하지 않으며 로그인 API를 프록시하지 않는다.
 - 기존 4개 `pickle-loginbridge*.pages.dev` 프로젝트에는 동일한 얇은 프록시를 배포한다. 이후 설정·엔진 변경은 `pickle-recipes` Pages 배포 즉시 반영된다. 이전 저장소의 Git 자동 배포가 프록시를 덮어쓰지 않도록 해당 프로젝트의 자동 배포를 비활성화한다.
 
 프록시 엔진 자체가 바뀔 때만 아래를 배포한다. 새 사이트 JSON이 병합될 때마다 Worker나 Pages 프로젝트를 만들 필요는 없다.
@@ -21,19 +21,21 @@ node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bridge.jsonc
 
 ## 도메인 연결
 
-운영 상태: `https://pickle-recipes.com`은 Pages에 연결되어 HTTPS로 서비스 중이다. 호환용 Pages 주소도 유지한다. `*.login` CNAME과 `*.login.pickle-recipes.com/*` Worker route는 생성했으며 요청 제한 시 차단한다. 브릿지 전용 URL 전환은 별도 인증서 활성화를 기다린다. 도메인 자동 갱신은 꺼져 있고 WHOIS 개인정보 가림은 켜져 있다. DNSSEC 활성화를 요청했다.
+운영 주소는 `https://pickle-recipes.com`과 `https://loginbridge--<siteId>.pickle-recipes.com/`이다. 브릿지는 한 단계 서브도메인이므로 무료 Universal SSL의 `*.pickle-recipes.com` 인증서를 사용한다. 유료 Advanced Certificate Manager 구독은 사용하지 않는다. 도메인 자동 갱신은 꺼진 상태, WHOIS 개인정보 가림은 켜진 상태로 유지한다.
 
 `pickle-recipes.com` 소유권과 Cloudflare zone이 활성화된 뒤 Pages의 커스텀 도메인으로 apex를 연결한다. Pages가 요구하는 DNS 레코드·인증서가 활성화되어야 한다. 이 시점까지 기존 `pickle-recipes.pages.dev`는 유지한다. API는 두 origin만 허용하고 브릿지 호스트에서 커뮤니티 API를 호출하지 않는다.
 
-와일드카드는 proxied `*.login` DNS 레코드와 Worker route가 필요하다. DNS 대상은 기존 Pages 호스트로 설정하되 라우트가 요청을 처리하도록 한다. 준비 후:
+DNS는 proxied CNAME `*` → `pickle-recipes.pages.dev`, Worker route는 `*.pickle-recipes.com/*` → `pickle-recipes-bridge-router`이며 요청 제한 실패 모드는 차단이다. apex CNAME 및 Pages 커스텀 도메인은 유지한다. `*.` route는 apex를 포함하지 않으므로 메인 API를 가로채지 않는다. DNS와 route의 부분 와일드카드 `loginbridge--*`는 사용하지 않는다. Worker의 정확한 접두사·siteId 검사가 와일드카드의 나머지 호스트를 차단한다.
+
+새 JSON이 검증·병합·릴리즈되어 인덱스에 포함되면 DNS나 Worker를 추가 생성하지 않고 자동으로 연결된다. 앞으로 다른 서비스에 서브도메인을 할당할 때는 더 구체적인 DNS 및 route를 별도로 검토한다. 기존 중첩 로그인 호스트용 DNS와 route는 제거한다.
 
 ```powershell
 node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bridge-domain.jsonc
 ```
 
-Full DNS setup의 Universal SSL은 apex와 첫 단계 서브도메인만 포함한다. 요청한 `*.login.pickle-recipes.com`은 더 깊은 단계이므로 해당 이름을 포함한 인증서가 필요하다. 유료 Advanced Certificate Manager 등 실제 계정에서 제공되는 인증서 옵션과 비용을 확인하고 사용자 결제 승인 후 활성화한다. 인증서가 활성화되기 전에 전용 URL을 새 커스텀 도메인으로 전환하지 않는다.
+각 `bridge/sites/*.json`의 `bridgeUrl`은 `https://loginbridge--<siteId>.pickle-recipes.com/`이며 `requireDownloadParam` 사이트의 `?download=1`을 유지한다. 변경은 PR 검증·릴리즈를 거쳐 배포한다. 기존 `pickle-loginbridge--<siteId>.pages.dev` 호스트와 `/bridge/?site=<siteId>`는 계속 지원한다. 메인 API 허용 origin과 브릿지 CSP의 외부 API 목록은 이 주소 전환으로 확장하지 않는다. 추가 환경변수·비밀값은 필요하지 않다.
 
-연결 완료 후 각 `bridge/sites/*.json`의 `bridgeUrl`을 `https://<siteId>.login.pickle-recipes.com/`으로 변경하되 `requireDownloadParam` 사이트의 `?download=1`을 유지한다. 변경은 PR 검증·릴리즈를 거쳐 배포한다. 기존 Pages 호스트와 확인용 `?site=`는 계속 지원한다.
+Wrangler 인증에 zone route 권한이 없으면 대시보드에서 route를 관리하고, 코드만 `wrangler versions upload -c wrangler.bridge.jsonc` 후 `wrangler versions deploy <version-id>@100% -c wrangler.bridge.jsonc --yes`로 배포한다. 새 버전 업로드만으로 트래픽이나 route는 변경되지 않는다.
 
 ## 검증과 한계
 
@@ -41,4 +43,4 @@ Full DNS setup의 Universal SSL은 apex와 첫 단계 서브도메인만 포함�
 
 브릿지에 분석·광고·Zaraz·Rocket Loader 같은 스크립트를 삽입하지 않는다. Worker observability는 비활성화되어 있으며 요청 쿼리에 인증 정보를 넣지 않는다. 다운로드 파일은 비밀을 포함하므로 사용자 기기에서 관리한다.
 
-참고: [Pages 헤더](https://developers.cloudflare.com/pages/configuration/headers/), [Pages 제한](https://developers.cloudflare.com/pages/platform/known-issues/), [Workers routes](https://developers.cloudflare.com/workers/configuration/routing/routes/), [고급 인증서](https://developers.cloudflare.com/ssl/edge-certificates/advanced-certificate-manager/).
+참고: [Pages 헤더](https://developers.cloudflare.com/pages/configuration/headers/), [Workers routes](https://developers.cloudflare.com/workers/configuration/routing/routes/), [와일드카드 DNS](https://developers.cloudflare.com/dns/manage-dns-records/reference/wildcard-dns-records/), [Universal SSL 범위](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/limitations/).

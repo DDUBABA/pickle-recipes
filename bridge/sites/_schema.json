@@ -8,7 +8,7 @@
     "$schema": { "const": "./_schema.json" },
     "siteId": { "type": "string", "maxLength": 43, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)+$" },
     "name": { "$ref": "#/$defs/label" },
-    "bridgeUrl": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https://[^/@?#]+(?:/[^#]*)?$" },
+    "bridgeUrl": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https://(?:loginbridge--[a-z0-9]+(?:-[a-z0-9]+)+\\.pickle-recipes\\.com|pickle-loginbridge--[a-z0-9]+(?:-[a-z0-9]+)+\\.pages\\.dev)/(?:\\?download=1)?$", "description": "해당 siteId의 전용 호스트. 서버와 CI가 siteId 일치 및 requireDownloadParam을 추가 검증합니다." },
     "originLoginUrl": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https?://[^/@?#]+(?:/[^#]*)?$" },
     "description": { "type": "string", "minLength": 1, "maxLength": 500, "pattern": "\\S" },
     "mode": { "enum": ["config_download", "api_token", "token_convert"] },

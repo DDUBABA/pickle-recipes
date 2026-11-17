@@ -27,11 +27,34 @@ test('Only one declarative JSON file is accepted, with no code/PII/secrets',()=>
   for(const config of [{...site,html:'x'},{...site,description:'<img src=x onerror=alert(1)>'},{...site,description:'user@example.com'},{...site,output:{token:'hardcoded-secret-value'}},{...site,output:{token:{$field:'unknown'}}},{...site,fields:[{...site.fields[0],value:'secret'}]},{...site,bridgeUrl:'https://evil.example.com/'}])assert.ok(validateBridge(config).length);
 });
 test('Dedicated hosts override query site and nested hosts fail closed',()=>{
-  assert.equal(selectSite('smartthings-pat.login.pickle-recipes.com','?site=knocktown-appapi').siteId,'smartthings-pat');
+  assert.equal(selectSite('loginbridge--smartthings-pat.pickle-recipes.com','?site=knocktown-appapi').siteId,'smartthings-pat');
   assert.equal(selectSite('pickle-loginbridge--smartthings-pat.pages.dev','?site=knocktown-appapi').siteId,'smartthings-pat');
   assert.equal(selectSite('pickle-recipes.pages.dev','?site=smartthings-pat').preview,true);
-  assert.throws(()=>selectSite('evil.smartthings-pat.login.pickle-recipes.com','?site=smartthings-pat'));
+  assert.throws(()=>selectSite('evil.loginbridge--smartthings-pat.pickle-recipes.com','?site=smartthings-pat'));
   assert.throws(()=>selectSite('pickle-recipes.pages.dev','?site=../../secret'));
+  assert.equal(selectSite('pickle-recipes.com','?site=smartthings-pat').preview,true);
+  assert.equal(selectSite('loginbridge--smartthings-pat.pickle-recipes.com','?site=knocktown-appapi',{'loginbridge--smartthings-pat.pickle-recipes.com':'knocktown-appapi'}).siteId,'smartthings-pat');
+  for(const host of ['smartthings-pat.login.pickle-recipes.com','www.pickle-recipes.com','loginbridge--bad_id.pickle-recipes.com','loginbridge--one.pickle-recipes.com','loginbridge--a--b.pickle-recipes.com','loginbridge--'+('a'.repeat(42))+'-b.pickle-recipes.com'])assert.throws(()=>selectSite(host,'?site=smartthings-pat',{[host]:'smartthings-pat'}));
+});
+
+test('Canonical and legacy bridge URLs agree with schema and site identity',async()=>{
+  const schema=JSON.parse(await readFile('bridge/sites/_schema.json','utf8'));
+  const pattern=new RegExp(schema.properties.bridgeUrl.pattern);
+  for(const bridgeUrl of ['https://loginbridge--smartthings-pat.pickle-recipes.com/','https://pickle-loginbridge--smartthings-pat.pages.dev/']){
+    assert.equal(pattern.test(bridgeUrl),true);assert.deepEqual(validateBridge({...site,bridgeUrl}),[]);
+  }
+  for(const bridgeUrl of ['https://smartthings-pat.login.pickle-recipes.com/','https://loginbridge--smartthings-pat.pickle-recipes.com.evil.example/','https://loginbridge--smartthings-pat.pickle-recipes.com/api/','https://loginbridge--smartthings-pat.pickle-recipes.com/?token=secret']){
+    assert.equal(pattern.test(bridgeUrl),false);assert.ok(validateBridge({...site,bridgeUrl}).length);
+  }
+  assert.ok(validateBridge({...site,bridgeUrl:'https://loginbridge--other-site.pickle-recipes.com/'}).length);
+  const gated=sites.find(s=>s.requireDownloadParam);
+  assert.ok(validateBridge({...gated,bridgeUrl:gated.bridgeUrl.replace('?download=1','')}).length);
+});
+
+test('Wildcard routing rejects unrelated, malformed and retired hosts before upstream fetch',async()=>{
+  let calls=0;const fake=async()=>{calls++;throw new Error('Unexpected fetch');};
+  for(const host of ['pickle-recipes.com','www.pickle-recipes.com','smartthings-pat.login.pickle-recipes.com','loginbridge--smartthings-pat.pickle-recipes.com.evil.example','evil.loginbridge--smartthings-pat.pickle-recipes.com','loginbridge--one.pickle-recipes.com','loginbridge--a--b.pickle-recipes.com','loginbridge--bad_id.pickle-recipes.com','loginbridge--'+('a'.repeat(42))+'-b.pickle-recipes.com'])assert.equal((await routeBridge(new Request(`https://${host}/?site=smartthings-pat`),fake)).status,404);
+  assert.equal(calls,0);
 });
 test('Bridge PR scope rejects code, extra JSON, renames, deletions and stale versions',()=>{
   const metadata={artifactType:'bridge',itemId:site.siteId,type:'new',baseVersion:null};const files=[{filename:`bridge/sites/${site.siteId}.json`,status:'added'}];
@@ -42,10 +65,10 @@ test('Bridge PR scope rejects code, extra JSON, renames, deletions and stale ver
 });
 test('Bridge router only fetches published assets without forwarding secrets or query',async()=>{
   const calls=[];const fake=async(url,options)=>{calls.push({url,options});return new Response(url.endsWith('index.json')?JSON.stringify({items:[bridgeItem(site)]}):'public asset',{headers:{'Content-Security-Policy':"default-src 'none'; script-src 'self'",'Set-Cookie':'unwanted=1'}});};
-  const r=await routeBridge(new Request('https://smartthings-pat.login.pickle-recipes.com/?site=other-site&token=not-forwarded',{headers:{Cookie:'private=x',Authorization:'Bearer private'}}),fake);
+  const r=await routeBridge(new Request('https://loginbridge--smartthings-pat.pickle-recipes.com/?site=other-site&token=not-forwarded',{headers:{Cookie:'private=x',Authorization:'Bearer private'}}),fake);
   assert.equal(r.status,200);assert.equal(r.headers.get('Set-Cookie'),null);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.equal(calls.length,2);assert.ok(calls.every(c=>!c.url.includes('?')&&!JSON.stringify(c.options).includes('private')));
-  for(const url of ['https://evil.example.com/','https://smartthings-pat.login.pickle-recipes.com/api/submit','https://smartthings-pat.login.pickle-recipes.com/sites/knocktown-appapi.json','https://unknown-site.login.pickle-recipes.com/'])assert.equal((await routeBridge(new Request(url),fake)).status,404);
-  assert.equal((await routeBridge(new Request('https://smartthings-pat.login.pickle-recipes.com/',{method:'POST',body:'secret'}),fake)).status,405);
+  for(const url of ['https://evil.example.com/','https://loginbridge--smartthings-pat.pickle-recipes.com/api/submit','https://loginbridge--smartthings-pat.pickle-recipes.com/sites/knocktown-appapi.json','https://loginbridge--unknown-site.pickle-recipes.com/'])assert.equal((await routeBridge(new Request(url),fake)).status,404);
+  assert.equal((await routeBridge(new Request('https://loginbridge--smartthings-pat.pickle-recipes.com/',{method:'POST',body:'secret'}),fake)).status,405);
 });
 test('Bridge router rejects upstream redirects in the Workers-supported redirect mode',async()=>{
   for(const redirectStage of ['index','asset']){
@@ -105,7 +128,7 @@ test('Build publishes only reviewed bridge hashes and generates hosts and restri
     await assert.rejects(readFile(path.join(root,`dist/bridge/sites/${site.siteId}.json`)));
     const bridges=Object.fromEntries(sites.map(s=>[s.siteId,{version:'1.0',hash:bridgeHash(s)}]));await writeFile(path.join(root,'.github/release-state.json'),JSON.stringify({items:{},bridges,processedPrs:[]}));await build(root);
     assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,sites.length);
-    const hosts=JSON.parse(await readFile(path.join(root,'dist/hosts.json'),'utf8'));assert.equal(hosts['smartthings-pat.login.pickle-recipes.com'],site.siteId);assert.equal(hosts['pickle-loginbridge--smartthings-pat.pages.dev'],site.siteId);
+    const hosts=JSON.parse(await readFile(path.join(root,'dist/hosts.json'),'utf8'));assert.equal(hosts['loginbridge--smartthings-pat.pickle-recipes.com'],site.siteId);assert.equal(hosts['pickle-loginbridge--smartthings-pat.pages.dev'],site.siteId);
     const headers=await readFile(path.join(root,'dist/_headers'),'utf8');assert.match(headers,/! Content-Security-Policy/);assert.match(headers,/connect-src 'self' https:\/\/api.homeknocktown.co.kr/);
     await writeFile(path.join(root,`bridge/sites/${site.siteId}.json`),JSON.stringify({...site,name:'Unreviewed'}));await build(root);assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,sites.length-1);
   }finally{await rm(root,{recursive:true,force:true});}

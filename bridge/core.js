@@ -117,10 +117,11 @@ export function selectSite(hostname,search,hosts={}) {
   const host=hostname.toLowerCase();
   const mapped=Object.hasOwn(hosts,host)?hosts[host]:null;
   const legacy=/^pickle-loginbridge--([a-z0-9]+(?:-[a-z0-9]+)+)\.pages\.dev$/.exec(host)?.[1];
-  const custom=/^([a-z0-9]+(?:-[a-z0-9]+)+)\.login\.pickle-recipes\.com$/.exec(host)?.[1];
-  // Unrecognized nested login hosts never fall back to an attacker-selected query.
-  if(host.endsWith('.login.pickle-recipes.com')&&!custom)throw new Error('INVALID_HOST');
-  const siteId=mapped||custom||legacy||new URLSearchParams(search).get('site');
+  const custom=/^loginbridge--([a-z0-9]+(?:-[a-z0-9]+)+)\.pickle-recipes\.com$/.exec(host)?.[1];
+  // Wildcard DNS is wider than the bridge namespace. Unknown subdomains fail closed,
+  // even if a stale host map or query parameter attempts to select a valid site.
+  if(host.endsWith('.pickle-recipes.com')&&!custom)throw new Error('INVALID_HOST');
+  const siteId=custom||legacy||mapped||new URLSearchParams(search).get('site');
   if(siteId)assert(typeof siteId==='string'&&sitePattern.test(siteId)&&siteId.length<=43);
   return {siteId,preview:!mapped&&!custom&&!legacy};
 }

@@ -176,6 +176,6 @@ daily/versions/users에는 `Authorization: Bearer <ADMIN_STATS_TOKEN>`이 필요
 
 설정 템플릿은 `$field` 또는 명시적 키 배열의 `$response`만 지원한다. 실제 사용자명·이메일·비밀번호·토큰·개인 프로필·연결 파일을 JSON에 넣지 않는다. 공개 공통 설정만 제출한다. URL·설명·라벨도 개인정보 검사를 받는다. 검사로 모든 민감정보를 찾을 수 없으므로 제출 전 직접 확인한다.
 
-`/bridge/`는 목록, `/bridge/?site=<siteId>`는 확인용 폼이다. 전용 호스트 `<siteId>.login.pickle-recipes.com`과 기존 `pickle-loginbridge--<siteId>.pages.dev`는 호스트로 사이트를 선택하며 `?site=`로 다른 사이트로 바꿀 수 없다. `requireDownloadParam:true`는 `?download=1`에서만 입력과 제출을 활성화한다. 전용 호스트의 연결·인증서가 완료되기 전에는 인덱스에 표시된 기존 주소를 사용한다.
+`/bridge/`는 목록, `/bridge/?site=<siteId>`는 확인용 폼이다. 전용 호스트 `loginbridge--<siteId>.pickle-recipes.com`과 기존 `pickle-loginbridge--<siteId>.pages.dev`는 호스트로 사이트를 선택하며 `?site=`로 다른 사이트로 바꿀 수 없다. `requireDownloadParam:true`는 `?download=1`에서만 입력과 제출을 활성화한다. 전용 호스트는 무료 Universal SSL을 사용한다. 새 사이트는 검증된 JSON이 병합·배포되면 같은 주소 규칙으로 자동 연결된다.
 
 로그인 정보·API 응답·생성 JSON은 화면·로그·localStorage·sessionStorage·쿠키에 복사하지 않는다. 마스킹 입력값과 처리 중 메모리는 완료·실패·초기화·이탈 때 비운다. `config_download`와 `token_convert`는 로컬 파일만 생성하고, `api_token`은 사용자의 브라우저에서 선언된 외부 API로 직접 요청한다. CORS 오류를 서버 프록시로 우회하지 않는다. AI는 사용자가 요청한 연결만 진행하며 로그인·OTP·비밀번호 입력·최종 계정 연결은 해당 환경의 사용자 승인 절차를 따른다. 생성된 비밀 파일을 이 저장소에 업로드하지 않는다.

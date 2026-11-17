@@ -15,7 +15,7 @@ export async function build(root=process.cwd(),{indexOnly=false}={}) {
   const sites=(await readBridges(root)).filter(site=>ledger.bridges?.[site.siteId]?.hash===bridgeHash(site));
   const bridgeItems=sites.map(site=>bridgeItem(site,ledger.bridges[site.siteId]));
   const items=[...published.map(({meta})=>meta),...bridgeItems];
-  const hosts=Object.fromEntries(sites.flatMap(site=>[[`pickle-loginbridge--${site.siteId}.pages.dev`,site.siteId],[`${site.siteId}.login.pickle-recipes.com`,site.siteId]]));
+  const hosts=Object.fromEntries(sites.flatMap(site=>[[`pickle-loginbridge--${site.siteId}.pages.dev`,site.siteId],[`loginbridge--${site.siteId}.pickle-recipes.com`,site.siteId]]));
   await mkdir(path.join(root,'bridge'),{recursive:true});
   await writeFile(path.join(root,'bridge/index.json'),JSON.stringify({schemaVersion:1,items:bridgeItems},null,2)+'\n');
   for(const name of ['hosts.json','bridge/hosts.json'])await writeFile(path.join(root,name),JSON.stringify(hosts,null,2)+'\n');
