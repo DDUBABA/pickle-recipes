@@ -87,11 +87,11 @@ Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 p
 2. Repository permissions: **Contents: Read & write**, **Pull requests: Read & write**, Metadata: Read. 저장소는 `pickle-recipes` 하나만 설치 대상으로 선택합니다. 사용자 사이트 이용자에게 GitHub 로그인을 요구하지 않습니다.
 3. App ID, installation ID, Generate a private key로 받은 PEM을 위 Cloudflare 비밀값에 등록합니다. App은 짧은 수명의 installation token을 요청할 때 해당 저장소로 범위를 제한합니다.
 4. 저장소 Actions secrets에 `SUBMISSION_METADATA_SECRET`을 Cloudflare와 동일하게 등록합니다. 자동 배포를 사용하면 `CLOUDFLARE_API_TOKEN`(해당 계정 Pages 편집 및 D1 편집), `CLOUDFLARE_ACCOUNT_ID`도 등록합니다. 서버 코드에는 관리자 개인 GitHub 토큰을 넣지 않습니다.
-5. Settings → Actions → General에서 워크플로의 필요한 쓰기 권한을 허용합니다. main 보호 규칙에서 PR 검사 `validate`, 코드 소유자 검토, 최신 main 반영을 요구하세요. 버전 자동화 커밋이 main에 쓸 수 있도록 전용 자동화 예외를 계정 정책에 맞게 설정합니다. 기본 GITHUB_TOKEN 커밋은 다시 push 워크플로를 유발하지 않으므로 같은 job 안에서 최종 빌드 배포를 수행합니다.
+5. 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한하고, 버전 확정·배포에는 전용 GitHub App의 단기 토큰을 사용합니다. main 보호 규칙은 PR, 필수 검사 `validate`·`application-check`, 최신 main 반영과 검토 대화 해결을 요구합니다. 1인 운영에서는 필수 승인 인원을 0명으로 두고 코드 소유자·마지막 푸시·추가 승인 의무를 해제해 운영자가 자신의 PR도 검사 통과 후 직접 병합할 수 있게 합니다. 버전 자동화 봇의 직접 쓰기 예외는 별도로 제한합니다.
 
 ## 접수와 버전 자동화
 
-운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`은 PR·필수 검사(`validate`, `application-check`)·코드 소유자 리뷰를 요구하고, 버전 확정 봇만 직접 쓰기 예외를 둡니다. `production`은 같은 봇만 업데이트할 수 있도록 별도 규칙을 적용합니다. 강제 푸시와 브랜치 삭제도 제한합니다. 봇 키를 교체하거나 접근을 철회할 때 Cloudflare와 Actions 두 저장 위치를 함께 관리하세요.
+운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`은 PR·필수 검사(`validate`, `application-check`)를 요구하며, 1인 운영을 위해 작성자 외 승인 리뷰를 필수로 두지 않습니다. 운영자는 자신의 변경과 외부 제출물 모두 검사 결과·개인정보·코드 내용을 확인한 뒤 직접 병합합니다. `.github/CODEOWNERS`는 검토 담당자를 안내하며 별도 승인 의무를 만들지 않습니다. 버전 확정 봇만 직접 쓰기 예외를 두고, `production`은 같은 봇만 업데이트할 수 있도록 별도 규칙을 적용합니다. 강제 푸시와 브랜치 삭제도 제한합니다. 봇 키를 교체하거나 접근을 철회할 때 Cloudflare와 Actions 두 저장 위치를 함께 관리하세요.
 
 Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 주소도 보호해야 합니다. 자동 프리뷰 생성 중지만으로는 기존 배포 주소가 차단되지 않습니다. API 코드도 현재 운영 origin만 허용합니다. `LOCAL_DEVELOPMENT=1`은 로컬 `.dev.vars`에서만 사용하며 운영 환경에는 등록하지 않습니다.
 

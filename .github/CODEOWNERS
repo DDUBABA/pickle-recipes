@@ -1,4 +1,5 @@
-# Protect these paths with required code-owner review on main.
+# Route changes in these paths to the operator for review.
+# Single-operator main requires a PR and checks, not an additional approving reviewer.
 /.github/ @jkc1832
 /functions/ @jkc1832
 /lib/ @jkc1832
