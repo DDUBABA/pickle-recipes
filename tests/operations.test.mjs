@@ -10,6 +10,15 @@ import {onRequestPost as revoke} from '../functions/api/consent/revoke.js';
 import {onRequestPost as cleanup} from '../functions/api/admin/maintenance.js';
 import {onRequestGet as health} from '../functions/api/health.js';
 const secret='test-signing-secret';
+test('Main domain and legacy Pages API work while bridge hosts remain isolated',async()=>{
+  const env={DB:new D1(),CF_PAGES:'1'};
+  for(const host of ['pickle-recipes.com','pickle-recipes.pages.dev']){
+    const response=await call(health,new Request(`https://${host}/api/health`,{headers:{'CF-Connecting-IP':'192.0.2.30'}}),env);
+    assert.equal(response.status,200);
+  }
+  const denied=await call(health,new Request('https://smartthings-pat.login.pickle-recipes.com/api/health',{headers:{'CF-Connecting-IP':'192.0.2.30'}}),env);
+  assert.equal(denied.status,403);assert.equal((await denied.json()).siteUrl,'https://pickle-recipes.com');
+});
 async function consent(env){const response=await call(grant,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'evidence-alias'})),env);assert.equal(response.status,201);return response.json();}
 async function signed(time=Date.now(),nonce=randomUUID()){const stamp=String(time);return {'X-Operations-Time':stamp,'X-Operations-Nonce':nonce,'X-Operations-Signature':await hmac(secret,`pickle-maintenance-v1\n${stamp}\n${nonce}\nPOST\n/api/admin/maintenance\nretention`)};}
 test('Atomic quotas reject concurrent excess requests and reopen after reset',async()=>{const db=new D1(),now=1800000000000;const outcomes=await Promise.allSettled(Array.from({length:20},()=>consume(db,'race',{limit:3,seconds:60},now)));assert.equal(outcomes.filter(x=>x.status==='fulfilled').length,3);assert.ok(outcomes.filter(x=>x.status==='rejected').every(x=>x.reason.status===429));assert.equal(db.db.prepare('SELECT hits FROM rate_limits').get().hits,3);await consume(db,'race',{limit:3,seconds:60},now+60000);assert.equal(db.db.prepare('SELECT hits FROM rate_limits').get().hits,1);});
