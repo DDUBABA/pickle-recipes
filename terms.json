@@ -1,5 +1,5 @@
 {
-  "termsVersion": "2026-11-17.2",
+  "termsVersion": "2026-11-17.3",
   "effectiveAt": "2026-11-17T00:00:00Z",
   "termsUrl": "/terms.html",
   "disclaimerUrl": "/terms.html#disclaimer",
@@ -21,7 +21,7 @@
     "version",
     "downloadedAt"
   ],
-  "retention": "동의 및 다운로드 기록은 서비스 운영과 동의 증빙 목적이 유지되는 동안 보관합니다. 목적이 소멸하거나 유효한 삭제 요청을 처리하면 삭제 또는 비식별화합니다. 공개 기여 이력은 GitHub에 남을 수 있습니다.",
+  "retention": "동의 ID·약관 버전·동의 시각·사용자 식별자·동의 및 철회 이력은 서비스 운영과 동의 증빙 목적이 유지되는 동안 보존하며 180일 자동 정리에서 제외합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 기록 시점에서 180일이 지난 뒤 정기 작업으로 제거합니다. 항목별 누적 다운로드 수는 유지합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.",
   "autoUpload": {
     "optional": true,
     "requiresExplicitConsent": true,
@@ -43,7 +43,9 @@
     "header": "Authorization: Bearer <consentToken>",
     "publicIdHeader": "X-Consent-Id",
     "versionHeader": "X-Terms-Version",
-    "neverPublish": "consentToken"
+    "neverPublish": "consentToken",
+    "expiresAfterDays": 90,
+    "revokeUrl": "/api/consent/revoke"
   },
   "affiliation": {
     "type": "independent-third-party-community",
@@ -52,5 +54,10 @@
     "operatorUrl": "https://github.com/jkc1832",
     "disclosure": "피클 제작사와 무관하게 운영되는 비공식 서드파티 커뮤니티입니다. 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물에 대한 제작사의 검토·보증을 의미하지 않습니다.",
     "scope": "이 사이트의 약관·가이드·제출 규격은 커뮤니티 자체 규칙이며 피클 제작사의 약관·공식 규격이 아닙니다."
+  },
+  "retentionPolicy": {
+    "telemetryDays": 180,
+    "consentEvidence": "retained",
+    "lifetimeItemTotals": "retained"
   }
 }

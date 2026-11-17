@@ -83,14 +83,22 @@ $('#consent-form').addEventListener('submit',async event=>{
   try{
     await latestTerms();if(shownVersion!==state.terms.termsVersion){await openConsent('확인하는 동안 약관이 변경되었습니다. 다시 읽고 동의해 주세요.');return;}
     const result=await api('/api/consent',{method:'POST',headers:{},body:JSON.stringify({termsVersion:shownVersion,agreed:$('#agree').checked,userIdentifier:$('#user-identifier').value.trim(),displayName:$('#display-name').value.trim(),clientType:'web',autoUploadAllowed:$('#auto-upload').checked})});
-    state.consent={consentId:result.consentId,consentToken:result.consentToken,termsVersion:result.termsVersion,agreedAt:result.agreedAt,autoUploadAllowed:result.autoUploadAllowed};
+    state.consent={consentId:result.consentId,consentToken:result.consentToken,termsVersion:result.termsVersion,agreedAt:result.agreedAt,expiresAt:result.expiresAt,autoUploadAllowed:result.autoUploadAllowed};
     try{localStorage.setItem(STORE,JSON.stringify(state.consent));}catch{toast('브라우저 저장이 제한되어 이번 방문에서만 동의가 유지됩니다.');}
     $('#consent-dialog').close();$('#disconnect').hidden=false;$('#connect-top').textContent='이용 동의 안내 ↗';await search({verify:false});
   }catch(error){$('#consent-error').textContent=error.message;}finally{button.disabled=false;}
 });
 $('#connect-top').onclick=()=>openConsent();$('#start-search').onclick=()=>openConsent();
 document.querySelectorAll('[data-close]').forEach(button=>button.onclick=()=>document.getElementById(button.dataset.close).close());
-$('#disconnect').onclick=()=>{clearConnection();toast('이 기기의 커뮤니티 이용 동의 정보를 지웠습니다. 기존 서버 기록은 보존됩니다.');};
+$('#disconnect').onclick=async()=>{
+  if(!state.consent)return;const button=$('#disconnect');button.disabled=true;
+  try{
+    // Withdrawal remains available with an authentic token even after terms change or token expiry.
+    const response=await fetch('/api/consent/revoke',{method:'POST',headers:{...headers(),'Content-Type':'application/json'},body:JSON.stringify({consentId:state.consent.consentId})});
+    const result=await response.json();if(!response.ok)throw new Error(result.message||'동의를 철회하지 못했습니다. 다시 시도해 주세요.');
+    clearConnection();toast('이용 동의를 철회하고 접근을 차단했습니다. 동의·철회 증빙은 보존됩니다.');
+  }catch(error){toast(error.message);}finally{button.disabled=false;}
+};
 $('#search-form').onsubmit=event=>{event.preventDefault();clearTimeout(searchTimer);state.limit=30;search();};
 $('#search').addEventListener('input',()=>{clearTimeout(searchTimer);if(state.consent)searchTimer=setTimeout(()=>{state.limit=30;search();},300);});
 document.querySelectorAll('[data-kind]').forEach(button=>button.onclick=()=>{state.kind=button.dataset.kind;state.limit=30;document.querySelectorAll('[data-kind]').forEach(tab=>{tab.classList.toggle('selected',tab===button);tab.setAttribute('aria-pressed',String(tab===button));});search();});

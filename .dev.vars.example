@@ -1,6 +1,8 @@
 # Copy to .dev.vars (ignored). Never commit real secrets.
+# Development only. Do not define LOCAL_DEVELOPMENT in Cloudflare production.
+LOCAL_DEVELOPMENT=1
 GITHUB_APP_ID=
 GITHUB_INSTALLATION_ID=
 GITHUB_APP_PRIVATE_KEY=
 ADMIN_STATS_TOKEN=
-SUBMISSION_METADATA_SECRET=
+SUBMISSION_METADATA_SECRET=local-development-only-signing-secret

@@ -20,11 +20,13 @@ Pickle Recipes는 사용자가 피클 커넥터·레시피를 검색·설치·�
 5. 실제 버튼 선택 후 `POST /api/consent`에 아래 JSON을 보낸다.
 
 ```json
-{"termsVersion":"2026-11-17.2","agreed":true,"userIdentifier":"local-random-handle","clientType":"pickle","autoUploadAllowed":false}
+{"termsVersion":"2026-11-17.3","agreed":true,"userIdentifier":"local-random-handle","clientType":"pickle","autoUploadAllowed":false}
 ```
 
 `termsVersion`은 예시를 고정 사용하지 말고 `/terms.json`의 최신 값으로 보낸다. `displayName`은 선택이다. 식별자는 비밀 인증 수단이나 실명 인증이 아니며 공개 별칭과 달라도 된다.
-응답의 `consentId`, **`consentToken`**, `termsVersion`, `agreedAt`, `autoUploadAllowed`를 `~/.config/pickle-recipes/consent.json`에 사용자만 읽도록 저장한다. 토큰은 다시 조회되지 않으므로 잃으면 재동의한다.
+응답의 `consentId`, **`consentToken`**, `termsVersion`, `agreedAt`, `expiresAt`, `autoUploadAllowed`를 `~/.config/pickle-recipes/consent.json`에 사용자만 읽도록 저장한다. 토큰은 다시 조회되지 않으므로 잃으면 재동의한다. 접근 토큰의 유효 기간은 90일이며 만료 시 동의를 다시 확인한다. 기존 동의 증빙은 유지된다.
+
+사용자가 이용 동의를 철회하면 같은 인증 헤더와 `consentId`를 사용해 `POST /api/consent/revoke`를 호출한다. 만료·구약관 토큰도 본인 토큰 검증에 성공하면 철회할 수 있다. 성공 확인 후 로컬 자격정보를 지운다. 서버는 동의·철회 증빙을 보존한다.
 
 이후 모든 검색·상세·다운로드·제출 호출에는 다음 헤더를 보낸다. 토큰은 URL, 출력 로그, 공통 코드, PR 본문에 절대 넣지 않는다.
 
@@ -86,7 +88,12 @@ API가 실제 GitHub PR을 만든 뒤 `receiptNumber`와 `prNumber`(동일한 PR
 운영자가 PR 검사를 확인해 병합하면 Actions가 이력을 최상단에 추가한다. 새 항목은 `1.0`, 기존 항목은 현재 확정 버전에서 `+0.1`이다. 동일 PR은 재실행해도 한 번만 반영한다. 병합 직후의 미확정 항목은 배포에서 숨겨질 수 있다.
 릴리즈: `{version,baseVersion,date,type,summary,submittedBy,prNumber}`. PR의 서명된 메타 블록은 임의로 바꾸지 않는다.
 
-## 8. 통계와 오류
+## 8. 호출 제한·보관 정책·통계와 오류
+
+API는 `https://pickle-recipes.pages.dev`에서 호출한다. 배포별 주소는 이용하지 않는다. `429 RATE_LIMITED`가 반환되면 `Retry-After` 초만큼 대기한다. IP별 기본 제한은 120회/분, 동의 생성 5회/시간, 제출 3회/시간, 다운로드 30회/분이다. 토큰별 및 서비스 전체 한도도 적용되므로 반복 재시도나 식별자 변경으로 우회하지 않는다.
+
+동의 ID·약관 버전·동의 시각·사용자 식별자·동의 및 철회 이력은 서비스 운영과 동의 증빙 목적이 유지되는 동안 보존하며 180일 자동 정리에서 제외합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 기록 시점에서 180일이 지난 뒤 정기 작업으로 제거합니다. 항목별 누적 다운로드 수는 유지합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.
+
 
 `GET /api/stats?group=items|daily|versions|users&format=json|csv&limit=100&offset=0`.
 관리자 토큰을 설정하면 모든 통계 API에 `Authorization: Bearer <ADMIN_STATS_TOKEN>`이 필요하다. 미설정 시에도 daily/versions/users는 닫힌다. items 집계는 유효한 동의로 조회 가능하다. UI 카드 집계는 search/items 응답에 포함된다.
