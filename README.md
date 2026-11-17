@@ -2,7 +2,7 @@
 
 **피클 제작사와 무관한 비공식 서드파티 커뮤니티입니다.** 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물은 제작사의 검토·보증을 의미하지 않습니다. 운영자는 [DDUBABA](https://github.com/DDUBABA)입니다.
 
-사용자가 만든 피클 커넥터와 레시피를 GitHub 계정 없이 검색·다운로드·공유하는 자료 허브입니다. 가이드·약관·API·템플릿·저장 경로는 이 커뮤니티 자체 규칙이며 제작사의 공식 규격이나 SDK가 아닙니다. 각 기능의 사용 가능 여부는 이용하는 AI 환경에 따라 달라집니다. **Cloudflare Pages + Pages Functions + D1**으로 동작하며, 피클 로그인 브릿지와 별개의 프로젝트입니다.
+사용자가 만든 피클 커넥터와 레시피를 GitHub 계정 없이 검색·다운로드·공유하는 자료 허브입니다. 가이드·약관·API·템플릿·저장 경로는 이 커뮤니티 자체 규칙이며 제작사의 공식 규격이나 SDK가 아닙니다. 각 기능의 사용 가능 여부는 이용하는 AI 환경에 따라 달라집니다. **Cloudflare Pages + Pages Functions + D1**으로 동작하며, 공통 로그인 브릿지 엔진을 통합했습니다.
 
 ## 구현 범위
 
@@ -12,6 +12,7 @@
 - 공식 [문의·건의하기](https://github.com/DDUBABA/pickle-recipes/issues)와 계정 없는 웹 폼·`POST /api/feedback`: D1 비공개 저장, 개인정보·토큰 패턴 차단, 429 제한, 180일 정리.
 - PR 검사 및 결과 코멘트, 병합 후 자동 버전 확정·카탈로그·사이트맵 생성·선택적 자동 배포.
 - AI 진입점 `/guide.md`, `/template/`, `/terms.json`, `/recipes/index.json`, `/llms.txt`.
+- [로그인 브릿지 목록](https://pickle-recipes.com/bridge/)과 `loginbridge--<siteId>.pickle-recipes.com` 전용 주소: 무료 Universal SSL, 단일 JSON 제출·자동 인덱싱, 기존 Pages 주소 호환. [운영 안내](docs/bridge-deployment.md).
 
 초기 카탈로그는 비어 있습니다. 실제 등록되지 않은 기능이나 다운로드 수를 예시 데이터로 표시하지 않습니다. `template/`는 미구현 빈 양식이며 카탈로그에 노출하지 않습니다.
 

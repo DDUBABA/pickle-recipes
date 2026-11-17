@@ -6,6 +6,6 @@
   "compatibility_flags": ["global_fetch_strictly_public"],
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{"pattern":"*.login.pickle-recipes.com/*","zone_name":"pickle-recipes.com"}],
+  "routes": [{"pattern":"*.pickle-recipes.com/*","zone_name":"pickle-recipes.com"}],
   "observability": {"enabled": false}
 }

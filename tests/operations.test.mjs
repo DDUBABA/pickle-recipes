@@ -16,7 +16,7 @@ test('Main domain and legacy Pages API work while bridge hosts remain isolated',
     const response=await call(health,new Request(`https://${host}/api/health`,{headers:{'CF-Connecting-IP':'192.0.2.30'}}),env);
     assert.equal(response.status,200);
   }
-  const denied=await call(health,new Request('https://smartthings-pat.login.pickle-recipes.com/api/health',{headers:{'CF-Connecting-IP':'192.0.2.30'}}),env);
+  const denied=await call(health,new Request('https://loginbridge--smartthings-pat.pickle-recipes.com/api/health',{headers:{'CF-Connecting-IP':'192.0.2.30'}}),env);
   assert.equal(denied.status,403);assert.equal((await denied.json()).siteUrl,'https://pickle-recipes.com');
 });
 async function consent(env){const response=await call(grant,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'evidence-alias'})),env);assert.equal(response.status,201);return response.json();}

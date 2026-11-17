@@ -5,7 +5,7 @@ export async function routeBridge(request,fetcher=fetch) {
   const url=new URL(request.url);
   if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{Allow:'GET, HEAD','Cache-Control':'no-store'}});
   if(url.protocol!=='https:')return denied(400);
-  const siteId=new RegExp(`^(${idPattern})\\.login\\.pickle-recipes\\.com$`).exec(url.hostname)?.[1]||new RegExp(`^pickle-loginbridge--(${idPattern})\\.pages\\.dev$`).exec(url.hostname)?.[1];
+  const siteId=new RegExp(`^loginbridge--(${idPattern})\\.pickle-recipes\\.com$`).exec(url.hostname)?.[1]||new RegExp(`^pickle-loginbridge--(${idPattern})\\.pages\\.dev$`).exec(url.hostname)?.[1];
   const directory=url.hostname==='pickle-loginbridge.pages.dev';
   if(!directory&&(!siteId||siteId.length>43))return denied();
   let file=url.pathname.replace(/^\/bridge(?=\/)/,'');
