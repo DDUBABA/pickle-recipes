@@ -82,6 +82,123 @@
       ],
       "createdAt": "2026-11-17T10:20:54Z",
       "updatedAt": "2026-11-17T10:20:54Z"
+    },
+    {
+      "id": "dongtan-lakecity-visit-web",
+      "siteId": "dongtan-lakecity-visit-web",
+      "name": "동탄 레이크시티 방문차량",
+      "description": "동·호수와 비밀번호를 피클의 방문차량 등록에 사용할 연결 파일로 만듭니다.",
+      "kind": "bridge",
+      "type": "bridge",
+      "status": "active",
+      "version": "1.0",
+      "createdAt": "2026-11-17T13:29:11Z",
+      "updatedAt": "2026-11-17T13:29:11Z",
+      "releases": [
+        {
+          "version": "1.0",
+          "baseVersion": null,
+          "date": "2026-11-17T13:29:11Z",
+          "type": "new",
+          "summary": "Integrate login bridges with JSON-only submissions and host routing",
+          "submittedBy": "DDUBABA",
+          "prNumber": 7
+        }
+      ],
+      "category": "로그인 브릿지",
+      "authType": "config_download",
+      "keywords": [
+        "dongtan-lakecity-visit-web",
+        "config_download"
+      ],
+      "tags": [
+        "bridge"
+      ],
+      "requires": [],
+      "parentId": null,
+      "relationType": null,
+      "author": "community",
+      "bridgeUrl": "https://pickle-loginbridge--dongtan-lakecity-visit-web.pages.dev/",
+      "configUrl": "/bridge/sites/dongtan-lakecity-visit-web.json",
+      "mode": "config_download"
+    },
+    {
+      "id": "knocktown-appapi",
+      "siteId": "knocktown-appapi",
+      "name": "노크타운 앱 로그인",
+      "description": "노크타운 앱 계정으로 로그인해 피클에서 사용할 연결 파일을 만듭니다. 원본 주소는 서비스 홈페이지입니다.",
+      "kind": "bridge",
+      "type": "bridge",
+      "status": "active",
+      "version": "1.0",
+      "createdAt": "2026-11-17T13:29:11Z",
+      "updatedAt": "2026-11-17T13:29:11Z",
+      "releases": [
+        {
+          "version": "1.0",
+          "baseVersion": null,
+          "date": "2026-11-17T13:29:11Z",
+          "type": "new",
+          "summary": "Integrate login bridges with JSON-only submissions and host routing",
+          "submittedBy": "DDUBABA",
+          "prNumber": 7
+        }
+      ],
+      "category": "로그인 브릿지",
+      "authType": "api_token",
+      "keywords": [
+        "knocktown-appapi",
+        "api_token"
+      ],
+      "tags": [
+        "bridge"
+      ],
+      "requires": [],
+      "parentId": null,
+      "relationType": null,
+      "author": "community",
+      "bridgeUrl": "https://pickle-loginbridge--knocktown-appapi.pages.dev/?download=1",
+      "configUrl": "/bridge/sites/knocktown-appapi.json",
+      "mode": "api_token"
+    },
+    {
+      "id": "smartthings-pat",
+      "siteId": "smartthings-pat",
+      "name": "SmartThings 개인 토큰",
+      "description": "공식 사이트에서 발급받은 개인 토큰으로 연결 파일을 만듭니다. 새 개인 토큰은 발급 후 24시간 동안 사용할 수 있습니다.",
+      "kind": "bridge",
+      "type": "bridge",
+      "status": "active",
+      "version": "1.0",
+      "createdAt": "2026-11-17T13:29:11Z",
+      "updatedAt": "2026-11-17T13:29:11Z",
+      "releases": [
+        {
+          "version": "1.0",
+          "baseVersion": null,
+          "date": "2026-11-17T13:29:11Z",
+          "type": "new",
+          "summary": "Integrate login bridges with JSON-only submissions and host routing",
+          "submittedBy": "DDUBABA",
+          "prNumber": 7
+        }
+      ],
+      "category": "로그인 브릿지",
+      "authType": "token_convert",
+      "keywords": [
+        "smartthings-pat",
+        "token_convert"
+      ],
+      "tags": [
+        "bridge"
+      ],
+      "requires": [],
+      "parentId": null,
+      "relationType": null,
+      "author": "community",
+      "bridgeUrl": "https://pickle-loginbridge--smartthings-pat.pages.dev/",
+      "configUrl": "/bridge/sites/smartthings-pat.json",
+      "mode": "token_convert"
     }
   ]
 }
