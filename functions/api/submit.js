@@ -1,12 +1,13 @@
 import {body,fail,json,textField} from '../../lib/http.js';
 import {verifyConsent} from '../../lib/consent.js';
-import {catalog,normalize} from '../../lib/catalog.js';
+import {loadCatalog,normalize} from '../../lib/catalog.js';
 import {validateMeta,validateFiles,validateDependencies,sensitiveFindings,VERSION} from '../../lib/validation.js';
 import {openSubmission,openBridgeSubmission} from '../../lib/github.js';
 import {bridgeSubmission} from '../../lib/bridge.js';
 export async function onRequestPost(context) {
   const data=await body(context.request);
   const consent=await verifyConsent(context,data);
+  const catalog=await loadCatalog(context.env.DB);
   if(!consent.auto_upload_allowed) fail(403,'UPLOAD_CONSENT_REQUIRED','개인정보 제거 후 공개 자동 업로드에 대한 사전 동의가 필요합니다.');
   const submittedBy=textField(data.submittedBy,'submittedBy');
   if(!/^[a-zA-Z0-9가-힣_-]{1,60}$/u.test(submittedBy)) fail(400,'INVALID_HANDLE','submittedBy에는 연락처 대신 공개용 별칭을 사용해 주세요.');

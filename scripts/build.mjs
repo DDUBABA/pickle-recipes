@@ -26,7 +26,7 @@ export async function build(root=process.cwd(),{indexOnly=false}={}) {
   await writeFile(path.join(root,'recipes/index.json'),JSON.stringify(catalog,null,2)+'\n');
   await writeFile(path.join(root,'sitemap.xml'),sitemap);
   await writeFile(path.join(root,'robots.txt'),`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`);
-  if(indexOnly)return;
+  if(indexOnly)return {catalog,terms,published,sites,hosts};
   const dist=path.resolve(root,'dist');
   if(path.dirname(dist)!==path.resolve(root))throw new Error('Unsafe output directory');
   await rm(dist,{recursive:true,force:true});await mkdir(path.join(dist,'recipes'),{recursive:true});
@@ -49,7 +49,7 @@ export async function build(root=process.cwd(),{indexOnly=false}={}) {
   const ld=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
   const hash=createHash('sha256').update(ld||'').digest('base64');
   await writeFile(path.join(dist,'_headers'),`/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  X-Frame-Options: DENY\n  Strict-Transport-Security: max-age=31536000\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-${hash}'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\n/terms.json\n  Cache-Control: no-store\n/recipes/index.json\n  Cache-Control: no-cache\n`);
-  await writeFile(path.join(dist,'_routes.json'),JSON.stringify({version:1,include:['/api/*'],exclude:[]}));
+  await writeFile(path.join(dist,'_routes.json'),JSON.stringify({version:1,include:['/api/*','/recipes/index.json','/bridge/*','/hosts.json'],exclude:[]}));
   // Remove the inherited main-site CSP before setting the bridge's tighter policy.
   const bridgeHeaders=`/bridge/*\n  ! Content-Security-Policy\n  Content-Security-Policy: ${bridgeCsp}\n  Cache-Control: no-store\n/hosts.json\n  Cache-Control: no-store\n`;
   const headersPath=path.join(dist,'_headers');await writeFile(headersPath,(await readFile(headersPath,'utf8'))+bridgeHeaders);

@@ -1,5 +1,7 @@
 # 로그인 브릿지 운영
 
+현재 데이터 게시·CSP 갱신·Actions 배포 정책은 [D1 카탈로그 운영](catalog-d1.md)을 따른다. 아래의 정적 빌드 설명은 최초 정적 폴백 생성에도 사용되지만, 설정 JSON 변경은 D1 동기화만으로 반영하며 Pages 전체 빌드를 요구하지 않는다.
+
 `DDUBABA/pickle-loginbridge`의 `a199b70ff5801c329bbcaf8a8eb6d3778514b021`에서 공통 엔진과 3개 공통 사이트 JSON을 가져왔다. 이 저장소의 `bridge/`가 이후 기준이다. `/bridge/sites/_schema.json`과 서버·CI 의미 검증을 함께 사용한다. 실제 인증 정보는 이 저장소에 저장하지 않는다.
 
 ## 배포 구조

@@ -1,9 +1,10 @@
-name: Release and build index
+name: Release and sync catalog
 on:
   push:
     branches: [main]
   workflow_dispatch:
 concurrency:
+  # Checkout latest main after acquiring this lock: superseded queued runs are safe.
   group: release-main
   cancel-in-progress: false
 permissions:
@@ -11,14 +12,20 @@ permissions:
   pull-requests: read
 jobs:
   release:
-    # Generated commit identity remains stable across account/App renames.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.head_commit.committer.email != '41898282+github-actions[bot]@users.noreply.github.com' ||
       !startsWith(github.event.head_commit.message, 'chore: publish item versions and catalog')
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      - name: Require Cloudflare synchronization credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN secret'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID secret'; exit 1; }
       - name: Issue a repository-scoped release bot token
         id: release-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349
@@ -40,16 +47,33 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - name: Reconcile all merged PRs and assign versions
+      - name: Compare code with the last deployed production branch
+        id: scope
+        run: node scripts/deployment-scope.mjs origin/production
+      - name: Reconcile merged PRs and generate reviewed indexes only
         run: node scripts/release.mjs
         env:
           GITHUB_TOKEN: ${{ steps.release-token.outputs.token }}
           SUBMISSION_METADATA_SECRET: ${{ secrets.SUBMISSION_METADATA_SECRET }}
       - run: node scripts/validate.mjs
       - run: python scripts/check_python.py
-      - run: node scripts/build.mjs
-      - run: node --test tests/*.test.mjs
-      - name: Commit generated releases, catalog and sitemap
+      - name: Build and test changed site code
+        if: steps.scope.outputs.deploy == 'true'
+        run: |
+          node scripts/build.mjs
+          node --test tests/*.test.mjs
+      - name: Install locked Wrangler for site changes only
+        if: steps.scope.outputs.deploy == 'true'
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.25.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Apply schema and disable automatic Git deployments
+        if: steps.scope.outputs.deploy == 'true'
+        run: |
+          node node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --remote
+          node scripts/configure-pages.mjs
+      - name: Commit reviewed releases and generated indexes
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -58,35 +82,14 @@ jobs:
             git commit -m 'chore: publish item versions and catalog'
             git push origin HEAD:main
           fi
-      - name: Detect Cloudflare deployment configuration
-        id: cloudflare
-        env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'Verified production branch published. Direct CLI deployment skipped; Pages Git integration can deploy production.' >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Install locked Wrangler
-        if: steps.cloudflare.outputs.ready == 'true'
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.25.0 --activate
-          pnpm install --frozen-lockfile
-      - name: Apply D1 migrations before triggering Pages Git deployment
-        if: steps.cloudflare.outputs.ready == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler d1 migrations apply DB --remote
-      - name: Publish the verified production branch for Pages Git integration
+      - name: Atomically sync changed data and indexes to D1
+        run: node scripts/sync-catalog.mjs
+      - name: Deploy site code once
+        if: steps.scope.outputs.deploy == 'true'
+        run: node node_modules/wrangler/bin/wrangler.js pages deploy dist --project-name pickle-recipes --branch production
+      - name: Record the successfully deployed code revision
+        if: steps.scope.outputs.deploy == 'true'
         run: git push origin HEAD:production
-      - name: Deploy finalized build directly
-        if: steps.cloudflare.outputs.ready == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          pnpm exec wrangler pages deploy dist --project-name pickle-recipes --branch production
+      - name: Report data-only publication
+        if: steps.scope.outputs.deploy != 'true'
+        run: echo 'Reviewed data synchronized to D1. No site build or Pages deployment was run.' >> "$GITHUB_STEP_SUMMARY"
