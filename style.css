@@ -2,3 +2,5 @@
 
 /* Keep independent community identity visible on every screen size. */
 .community-notice{padding-top:18px;padding-bottom:18px;border-block:1px solid var(--line);display:flex;align-items:flex-start;gap:20px}.community-notice strong{flex-shrink:0;color:var(--green);font-size:12px;line-height:1.9}.community-notice p{margin:0;color:#59694f;font-size:12px;line-height:1.9}.affiliation-note{background:#eff2e8;border-radius:8px;padding:14px 16px;color:#42583b}.footer p{display:block;color:#59694f;font-size:11px}.footer{flex-wrap:wrap}@media(max-width:650px){.community-notice{display:block;padding-block:15px}.community-notice strong{display:block;margin-bottom:5px}.community-notice p{font-size:11px}.footer p{flex-basis:100%;order:2}.hero .eyebrow{letter-spacing:1.4px}}
+#consent-dialog .consent-summary p{font-size:13px;line-height:1.8;margin:10px 0}
+#consent-form>p:not(.form-error){font-size:12px;line-height:1.8;color:#5c6a54}

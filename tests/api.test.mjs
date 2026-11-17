@@ -12,6 +12,53 @@ import {terms} from '../lib/consent.js';
 import {D1,request,call,payload,credentials,meta,files} from './helpers.mjs';
 catalog.items.push(meta,{...meta,id:'blocked-service',status:'blocked'});bundles[meta.id]={'meta.json':JSON.stringify(meta),...files};
 async function setup(extra={}){const env={DB:new D1(),...extra};const response=await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'test-user',clientType:'web',autoUploadAllowed:true})),env);assert.equal(response.status,201);const consent=await response.json();return {env,consent,headers:credentials(consent)};}
+
+test('Upload consent defaults to true, preserves explicit false, and agrees with stored and verified permissions',async()=>{
+  for(const option of [{}, {autoUploadAllowed:true}, {autoUploadAllowed:false}]){
+    const env={DB:new D1()};
+    const expected=option.autoUploadAllowed!==false;
+    const response=await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'consent-default-test',...option})),env);
+    assert.equal(response.status,201);
+    const consent=await response.json();const headers=credentials(consent);
+    assert.equal(consent.autoUploadAllowed,expected);
+    assert.equal(env.DB.db.prepare('SELECT auto_upload_allowed FROM consents WHERE consent_id=?').get(consent.consentId).auto_upload_allowed,Number(expected));
+    const verified=await call(verify,request('/api/consent/verify',{headers}),env);
+    assert.equal(verified.status,200);assert.equal((await verified.json()).autoUploadAllowed,expected);
+    assert.equal((await call(search,request('/api/search',{headers}),env)).status,200);
+    if(!expected){
+      const denied=await call(submit,request('/api/submit',payload({consentId:consent.consentId,termsVersion:consent.termsVersion},headers)),env);
+      assert.equal(denied.status,403);assert.equal((await denied.json()).code,'UPLOAD_CONSENT_REQUIRED');
+    }
+  }
+});
+
+test('Non-boolean upload permission and absent agreement never create consent evidence',async()=>{
+  for(const option of [{autoUploadAllowed:null},{autoUploadAllowed:'true'},{autoUploadAllowed:1},{autoUploadAllowed:[]},{autoUploadAllowed:{}}]){
+    const env={DB:new D1()};
+    const response=await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed:true,userIdentifier:'invalid-option-test',...option})),env);
+    assert.equal(response.status,400);assert.equal((await response.json()).code,'INVALID_FIELD');
+    assert.equal(env.DB.db.prepare('SELECT COUNT(*) AS n FROM consents').get().n,0);
+    assert.equal(env.DB.db.prepare('SELECT COUNT(*) AS n FROM consent_events').get().n,0);
+  }
+  const env={DB:new D1()};
+  const response=await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,userIdentifier:'missing-agreement'})),env);
+  assert.equal(response.status,400);assert.equal((await response.json()).code,'AGREEMENT_REQUIRED');
+  assert.equal(env.DB.db.prepare('SELECT COUNT(*) AS n FROM consents').get().n,0);
+});
+
+test('Previous terms require reconsent without upgrading old upload choices or rewriting evidence',async()=>{
+  assert.equal(terms.termsVersion,'2026-11-17.4');
+  const {env,consent,headers}=await setup();
+  env.DB.db.prepare('UPDATE consents SET terms_version=?,auto_upload_allowed=0 WHERE consent_id=?').run('2026-11-17.3',consent.consentId);
+  const oldRecord=env.DB.db.prepare('SELECT * FROM consents').get();
+  const denied=await call(verify,request('/api/consent/verify',{headers}),env);
+  assert.equal(denied.status,403);assert.equal((await denied.json()).requiresReconsent,true);
+  const outdated=await call(consentPost,request('/api/consent',payload({termsVersion:'2026-11-17.3',agreed:true,userIdentifier:'old-version-test'})),env);
+  assert.equal(outdated.status,409);const error=await outdated.json();
+  assert.equal(error.termsVersion,'2026-11-17.4');assert.equal(error.requiresReconsent,true);
+  assert.deepEqual(env.DB.db.prepare('SELECT * FROM consents').get(),oldRecord);
+  assert.equal(env.DB.db.prepare('SELECT COUNT(*) AS n FROM consent_events').get().n,1);
+});
 test('Explicit consent and current terms required; token is stored only as a hash',async()=>{const {env,consent}=await setup();const row=env.DB.db.prepare('SELECT * FROM consents').get();assert.notEqual(row.consent_token_hash,consent.consentToken);assert.equal(row.user_identifier,'test-user');for(const agreed of [false,'true',1]){const result=await call(consentPost,request('/api/consent',payload({termsVersion:terms.termsVersion,agreed,userIdentifier:'x'})),env);assert.equal(result.status,400);}assert.equal((await call(consentPost,request('/api/consent',payload({termsVersion:'old',agreed:true,userIdentifier:'x'})),env)).status,409);});
 test('Public consentId alone cannot authorize API access; terms changes stop access',async()=>{const {env,consent,headers}=await setup();assert.equal((await call(verify,request('/api/consent/verify',{headers}),env)).status,200);assert.equal((await call(verify,request(`/api/consent/verify?consentId=${consent.consentId}&termsVersion=${terms.termsVersion}`),env)).status,403);env.DB.db.prepare("UPDATE consents SET terms_version='old'").run();const response=await call(verify,request('/api/consent/verify',{headers}),env);assert.equal(response.status,403);assert.equal((await response.json()).requiresReconsent,true);});
 test('Search synonyms, kind filters, blocked exclusion and detail metadata',async()=>{const {env,headers}=await setup();assert.equal((await call(search,request('/api/search'),env)).status,403);let response=await call(search,request('/api/search?q=할%20일&sort=updated',{headers}),env);let data=await response.json();assert.equal(data.total,1);assert.equal(data.items[0].id,meta.id);response=await call(search,request('/api/search?kind=recipe',{headers}),env);assert.equal((await response.json()).total,0);assert.equal((await call(search,request('/api/search?limit=-1',{headers}),env)).status,400);const item=await(await call(detail,request('/api/items/sample-service',{headers}),env,{id:meta.id})).json();assert.equal(item.item.releases[0].prNumber,1);assert.equal((await call(detail,request('/api/items/blocked-service',{headers}),env,{id:'blocked-service'})).status,403);});

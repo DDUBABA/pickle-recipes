@@ -9,6 +9,7 @@ export async function onRequestPost({request,env}) {
   const name = textField(data.displayName,'displayName',100,true);
   const type = clientType(data.clientType);
   if (data.autoUploadAllowed !== undefined && typeof data.autoUploadAllowed !== 'boolean') fail(400,'INVALID_FIELD','autoUploadAllowed는 boolean이어야 합니다.');
+  const autoUploadAllowed = data.autoUploadAllowed ?? true;
   if (!env.DB) fail(503,'DB_UNAVAILABLE','동의 저장소가 연결되지 않았습니다.');
   const consentId = crypto.randomUUID();
   const consentToken = crypto.randomUUID() + crypto.randomUUID();
@@ -16,8 +17,8 @@ export async function onRequestPost({request,env}) {
   const expiresAt=new Date(Date.now()+TOKEN_DAYS*86400000).toISOString();
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO consents (consent_id,terms_version,agreed_at,user_identifier,display_name,client_type,ip_address,user_agent,created_at,consent_token_hash,auto_upload_allowed,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
-      .bind(consentId,terms.termsVersion,now,user,name,type,info.ip,info.agent,now,await sha256(consentToken),data.autoUploadAllowed === true ? 1 : 0,expiresAt),
+      .bind(consentId,terms.termsVersion,now,user,name,type,info.ip,info.agent,now,await sha256(consentToken),autoUploadAllowed ? 1 : 0,expiresAt),
     env.DB.prepare('INSERT INTO consent_events(event_id,consent_id,event_type,occurred_at) VALUES(?,?,?,?)').bind(crypto.randomUUID(),consentId,'granted',now)
   ]);
-  return json({ok:true,consentId,consentToken,termsVersion:terms.termsVersion,agreedAt:now,expiresAt,autoUploadAllowed:data.autoUploadAllowed === true},201);
+  return json({ok:true,consentId,consentToken,termsVersion:terms.termsVersion,agreedAt:now,expiresAt,autoUploadAllowed},201);
 }
