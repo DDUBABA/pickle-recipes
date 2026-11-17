@@ -46,6 +46,8 @@
       "relationType": null,
       "author": "community",
       "bridgeUrl": "https://loginbridge--dongtan-lakecity-visit-web.pickle-recipes.com/",
+      "displayUrl": "https://loginbridge--dongtan-lakecity-visit-web.pickle-recipes.com/",
+      "downloadUrl": "https://loginbridge--dongtan-lakecity-visit-web.pickle-recipes.com/?download=1",
       "configUrl": "/bridge/sites/dongtan-lakecity-visit-web.json",
       "mode": "config_download"
     },
@@ -94,6 +96,8 @@
       "relationType": null,
       "author": "community",
       "bridgeUrl": "https://loginbridge--knocktown-appapi.pickle-recipes.com/?download=1",
+      "displayUrl": "https://loginbridge--knocktown-appapi.pickle-recipes.com/",
+      "downloadUrl": "https://loginbridge--knocktown-appapi.pickle-recipes.com/?download=1",
       "configUrl": "/bridge/sites/knocktown-appapi.json",
       "mode": "api_token"
     },
@@ -142,6 +146,8 @@
       "relationType": null,
       "author": "community",
       "bridgeUrl": "https://loginbridge--smartthings-pat.pickle-recipes.com/",
+      "displayUrl": "https://loginbridge--smartthings-pat.pickle-recipes.com/",
+      "downloadUrl": "https://loginbridge--smartthings-pat.pickle-recipes.com/?download=1",
       "configUrl": "/bridge/sites/smartthings-pat.json",
       "mode": "token_convert"
     }

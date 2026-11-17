@@ -1,4 +1,4 @@
-import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys} from "./core.js";
+import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys,bridgeUrls} from "./core.js";
 "use strict";
 
 (() => {
@@ -136,7 +136,7 @@ import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys} from 
       active = null;
       clearInputs();
       setBusy(false);
-      setStatus(downloadAllowed ? "" : "파일을 받으려면 주소 끝에 download=1 옵션을 추가해 주세요.");
+      setStatus(downloadAllowed ? "" : "연결 파일을 받으려면 아래에서 파일 다운로드를 허용해 주세요.");
     };
     reset.addEventListener("click", clearForm);
     clearForm();
@@ -219,7 +219,7 @@ import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys} from 
       const item = element("li");
       item.append(element("h2", site.name), element("p", site.description));
       const addresses = element("dl");
-      for (const [label, url] of [["로그인 브릿지 주소", site.bridgeUrl], ["원본 로그인 주소", site.originLoginUrl]]) {
+      for (const [label, url] of [["로그인 브릿지 주소", bridgeUrls(site.bridgeUrl).displayUrl], ["원본 로그인 주소", site.originLoginUrl]]) {
         const value = element("dd");
         value.append(link(url, url));
         addresses.append(element("dt", label), value);

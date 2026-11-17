@@ -37,6 +37,8 @@ node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bridge-domain.json
 
 Wrangler 인증에 zone route 권한이 없으면 대시보드에서 route를 관리하고, 코드만 `wrangler versions upload -c wrangler.bridge.jsonc` 후 `wrangler versions deploy <version-id>@100% -c wrangler.bridge.jsonc --yes`로 배포한다. 새 버전 업로드만으로 트래픽이나 route는 변경되지 않는다.
 
+웹 목록·상세 링크는 `download` 파라미터를 제거한 `displayUrl`을 사용한다. 빌드가 모든 브릿지에 `download=1`을 붙인 `downloadUrl`도 생성하며 피클 AI는 이 값을 사용한다. 이 필드들은 공통 엔진에서 파생하므로 제출 JSON에 별도 입력하지 않는다. 원본 `bridgeUrl`과 `requireDownloadParam`의 검증·허용 조건은 유지한다. URL 표시와 실행 안내를 바꾸는 데 DNS나 Worker 설정 변경은 필요하지 않다.
+
 ## 검증과 한계
 
 `node --test`는 스키마·PII·코드 차단, URL 우회, 제출 단일 파일 범위, 서명, 릴리즈 해시, 검색, 전용 호스트 우선순위와 브라우저 비밀 정리를 검사한다. 실서비스 로그인에는 사용자의 인증이 필요하며 테스트에 실제 계정·토큰을 쓰지 않는다. API 목적지의 CORS와 공인 DNS는 운영자가 검토해야 한다. DNS 이름의 장래 변경이나 모든 민감정보를 정적 검사로 보장할 수 없으며 실패를 서버 프록시로 우회하지 않는다.

@@ -178,4 +178,6 @@ daily/versions/users에는 `Authorization: Bearer <ADMIN_STATS_TOKEN>`이 필요
 
 `/bridge/`는 목록, `/bridge/?site=<siteId>`는 확인용 폼이다. 전용 호스트 `loginbridge--<siteId>.pickle-recipes.com`과 기존 `pickle-loginbridge--<siteId>.pages.dev`는 호스트로 사이트를 선택하며 `?site=`로 다른 사이트로 바꿀 수 없다. `requireDownloadParam:true`는 `?download=1`에서만 입력과 제출을 활성화한다. 전용 호스트는 무료 Universal SSL을 사용한다. 새 사이트는 검증된 JSON이 병합·배포되면 같은 주소 규칙으로 자동 연결된다.
 
+사람에게 보여 주는 목록·링크에는 `displayUrl`을 사용한다. `/bridge/index.json`, `/recipes/index.json`, 검색·상세 API는 `displayUrl`(다운로드 파라미터 없는 기본 주소)과 `downloadUrl`(모든 브릿지에 `download=1`을 붙인 실행 주소)을 제공한다. 기존 `bridgeUrl`은 이전 클라이언트 호환을 위해 원래 설정값을 유지한다. 피클 AI가 사용자의 요청으로 브릿지를 열 때는 반드시 `downloadUrl`을 사용한다. 이전 인덱스나 사이트 JSON만 있다면 `new URL(site.bridgeUrl)`에 `searchParams.set('download', '1')`을 적용한다. 문자열로 `?download=1`을 덧붙여 중복 쿼리를 만들지 않는다. 확인용 `/bridge/?site=<siteId>`도 AI가 연결용으로 열 때는 `&download=1`을 붙인다. 이는 다운로드 허용 옵션이며 로그인이나 다운로드를 자동 실행하거나 동의·인증을 대신하지 않는다.
+
 로그인 정보·API 응답·생성 JSON은 화면·로그·localStorage·sessionStorage·쿠키에 복사하지 않는다. 마스킹 입력값과 처리 중 메모리는 완료·실패·초기화·이탈 때 비운다. `config_download`와 `token_convert`는 로컬 파일만 생성하고, `api_token`은 사용자의 브라우저에서 선언된 외부 API로 직접 요청한다. CORS 오류를 서버 프록시로 우회하지 않는다. AI는 사용자가 요청한 연결만 진행하며 로그인·OTP·비밀번호 입력·최종 계정 연결은 해당 환경의 사용자 승인 절차를 따른다. 생성된 비밀 파일을 이 저장소에 업로드하지 않는다.

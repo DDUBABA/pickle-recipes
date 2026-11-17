@@ -87,6 +87,13 @@ test('root directory lists every site with both addresses', async () => {
   const app = await boot('https://pickle-loginbridge.pages.dev/');
   assert.equal(app.elements.filter(element => element.tag === 'a').length, 6);
   assert.equal(app.elements.filter(element => element.tag === 'input').length, 0);
+  for(const config of Object.values(configurations)){
+    const clean=new URL(config.bridgeUrl);clean.searchParams.delete('download');
+    const link=app.elements.find(element=>element.tag==='a'&&element.textContent===clean.href);
+    assert.ok(link);assert.equal(link.href,clean.href);
+    assert.ok(app.elements.some(element=>element.tag==='a'&&element.href===config.originLoginUrl));
+  }
+  assert.ok(app.elements.every(element=>!element.textContent.includes('download=')));
 });
 
 test('mapped host takes priority over an attacker-supplied site query', async () => {

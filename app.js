@@ -66,8 +66,8 @@ async function showDetail(id){
     const title=el('h2',item.name);title.id='detail-name';
     if(item.kind==='bridge'){
       content.append(el('p','LOGIN BRIDGE','eyebrow'),title,el('p',item.description),el('p','로그인 정보는 브라우저에서 처리하며 연결 파일을 서버에 올리지 않습니다.'));
-      const link=el('a','전용 로그인 브릿지 열기 ↗','primary button');link.href=item.bridgeUrl;link.target='_blank';link.rel='noopener noreferrer';content.append(link);
-      const preview=el('a','이 사이트에서 브릿지 확인하기','outline button');preview.href=`/bridge/?site=${encodeURIComponent(item.id)}${item.config.requireDownloadParam?'&download=1':''}`;content.append(preview);
+      const link=el('a','전용 로그인 브릿지 열기 ↗','primary button');link.href=item.displayUrl||item.bridgeUrl;link.target='_blank';link.rel='noopener noreferrer';content.append(link);
+      const preview=el('a','이 사이트에서 브릿지 확인하기','outline button');preview.href=`/bridge/?site=${encodeURIComponent(item.id)}`;content.append(preview);
       if(!$('#detail-dialog').open)$('#detail-dialog').showModal();return;
     }
     content.append(el('p',item.kind==='connector'?'CONNECTOR':'RECIPE','eyebrow'),title,el('p',item.description,'detail-description'),el('p',`v${item.version} · ${item.category} · ${item.authType} · ⬇ ${item.totalDownloads.toLocaleString('ko-KR')}`,'detail-meta'));

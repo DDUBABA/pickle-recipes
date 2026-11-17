@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {generateKeyPairSync,createHmac} from 'node:crypto';
 import {validateBridge,bridgeSubmission,bridgeItem} from '../lib/bridge.js';
-import {publicApiUrl,selectSite} from '../bridge/core.js';
+import {publicApiUrl,selectSite,bridgeUrls} from '../bridge/core.js';
 import {assertBridgePr} from '../lib/bridge-pr.js';
 import {readBridges,bridgeHash} from '../scripts/bridges.mjs';
 import {build} from '../scripts/build.mjs';
@@ -20,6 +20,19 @@ import {D1,call,request,payload,credentials} from './helpers.mjs';
 const sites=await readBridges();const site=sites.find(s=>s.siteId==='smartthings-pat');
 const input={type:'bridge',changeType:'new',siteId:site.siteId,baseVersion:null,submittedBy:'tester',summary:'공통 연결 설정',files:{[`sites/${site.siteId}.json`]:JSON.stringify(site)}};
 test('All imported sites pass strict schema and privacy validation',()=>{assert.ok(sites.length>=3);for(const s of sites)assert.deepEqual(validateBridge(s),[]);});
+test('Every bridge exposes a clean display URL and an idempotent AI download URL',()=>{
+  for(const s of sites){
+    const item=bridgeItem(s);const display=new URL(item.displayUrl),download=new URL(item.downloadUrl);
+    assert.equal(display.searchParams.has('download'),false);
+    assert.deepEqual(download.searchParams.getAll('download'),['1']);
+    assert.equal(download.origin,display.origin);assert.equal(download.pathname,display.pathname);
+    assert.equal(item.bridgeUrl,s.bridgeUrl);
+    assert.deepEqual(bridgeUrls(item.downloadUrl),bridgeUrls(item.displayUrl));
+  }
+  const urls=bridgeUrls('https://pickle-recipes.com/bridge/?site=knocktown-appapi&download=0&download=1');
+  assert.equal(new URL(urls.displayUrl).search,'?site=knocktown-appapi');
+  assert.equal(new URL(urls.downloadUrl).search,'?site=knocktown-appapi&download=1');
+});
 for(const url of ['http://api.example.com/','https://localhost/','https://127.0.0.1/','https://10.1.1.1/','https://169.254.169.254/','https://[::1]/','https://[::ffff:127.0.0.1]/','https://2130706433/','https://0x7f000001/','https://0177.0.0.1/','https://api.local/','https://user:pass@api.example.com/','https://api.example.com/?token=x','https://api.example.com/#x','https://api.example.com:444/','https://api.example.com./','javascript:alert(1)','data:text/html,x'])test(`Reject unsafe API URL ${url}`,()=>assert.throws(()=>publicApiUrl(url)));
 test('Only one declarative JSON file is accepted, with no code/PII/secrets',()=>{
   assert.deepEqual(bridgeSubmission(input).errors,[]);
@@ -94,11 +107,12 @@ test('Search and item APIs support bridge while preserving kind compatibility',a
   const fixture={...site,siteId:'search-test-bridge',bridgeUrl:'https://pickle-loginbridge--search-test-bridge.pages.dev/'};
   const item=bridgeItem(fixture);catalog.items.push(item);bundles[item.id]={[`sites/${item.id}.json`]:JSON.stringify(fixture)};
   try{
-    assert.equal(searchItems([item],new URLSearchParams('type=bridge')).total,1);
+    const search=searchItems([item],new URLSearchParams('type=bridge'));assert.equal(search.total,1);
+    assert.equal(search.items[0].displayUrl,item.displayUrl);assert.equal(search.items[0].downloadUrl,item.downloadUrl);
     assert.equal(searchItems([item],new URLSearchParams('kind=bridge')).total,1);
     assert.equal(searchItems([item],new URLSearchParams('type=recipe')).total,0);
     assert.throws(()=>searchItems([item],new URLSearchParams('type=bridge&kind=recipe')));
-    const env={DB:new D1()};const response=await call(detail,request(`/api/items/${item.id}?type=bridge`),env,{id:item.id});assert.equal(response.status,200);assert.equal((await response.json()).item.config.mode,'token_convert');
+    const env={DB:new D1()};const response=await call(detail,request(`/api/items/${item.id}?type=bridge`),env,{id:item.id});assert.equal(response.status,200);const result=(await response.json()).item;assert.equal(result.config.mode,'token_convert');assert.equal(result.displayUrl,item.displayUrl);assert.equal(result.downloadUrl,item.downloadUrl);
     assert.equal((await call(detail,request(`/api/items/${item.id}?type=recipe`),env,{id:item.id})).status,404);
   }finally{catalog.items.splice(catalog.items.indexOf(item),1);delete bundles[item.id];}
 });
@@ -127,7 +141,8 @@ test('Build publishes only reviewed bridge hashes and generates hosts and restri
     assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,0);
     await assert.rejects(readFile(path.join(root,`dist/bridge/sites/${site.siteId}.json`)));
     const bridges=Object.fromEntries(sites.map(s=>[s.siteId,{version:'1.0',hash:bridgeHash(s)}]));await writeFile(path.join(root,'.github/release-state.json'),JSON.stringify({items:{},bridges,processedPrs:[]}));await build(root);
-    assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,sites.length);
+    const published=JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items;assert.equal(published.length,sites.length);
+    for(const item of published){assert.equal(new URL(item.displayUrl).search,'');assert.equal(new URL(item.downloadUrl).search,'?download=1');}
     const hosts=JSON.parse(await readFile(path.join(root,'dist/hosts.json'),'utf8'));assert.equal(hosts['loginbridge--smartthings-pat.pickle-recipes.com'],site.siteId);assert.equal(hosts['pickle-loginbridge--smartthings-pat.pages.dev'],site.siteId);
     const headers=await readFile(path.join(root,'dist/_headers'),'utf8');assert.match(headers,/! Content-Security-Policy/);assert.match(headers,/connect-src 'self' https:\/\/api.homeknocktown.co.kr/);
     await writeFile(path.join(root,`bridge/sites/${site.siteId}.json`),JSON.stringify({...site,name:'Unreviewed'}));await build(root);assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,sites.length-1);

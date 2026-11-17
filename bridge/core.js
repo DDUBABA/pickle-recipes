@@ -113,6 +113,13 @@
   }
 
 export {sitePattern,isObject,assert,forbiddenKeys};
+export function bridgeUrls(bridgeUrl) {
+  const url=new URL(bridgeUrl);
+  url.searchParams.delete('download');
+  const displayUrl=url.href;
+  url.searchParams.set('download','1');
+  return {displayUrl,downloadUrl:url.href};
+}
 export function selectSite(hostname,search,hosts={}) {
   const host=hostname.toLowerCase();
   const mapped=Object.hasOwn(hosts,host)?hosts[host]:null;
