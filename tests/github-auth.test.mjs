@@ -32,6 +32,9 @@ function checkError(error,code,stage,status=503) {
 }
 
 test('PKCS#1 and PKCS#8 normalize dashboard PEMs and sign verifiable RS256 JWTs',async t=>{
+  const nativeSign=t.mock.method(nodeCrypto,'sign',()=>{throw new Error('Native signing is unavailable');});
+  syncBuiltinESMExports();
+  t.after(()=>{nativeSign.mock.restore();syncBuiltinESMExports();});
   const styles={
     LF:value=>value,
     CRLF:value=>value.replaceAll('\n','\r\n'),
@@ -59,6 +62,41 @@ test('PKCS#1 and PKCS#8 normalize dashboard PEMs and sign verifiable RS256 JWTs'
     });
     assert.equal(await installationToken({...env,GITHUB_APP_PRIVATE_KEY:normalize(privateKey.export({type,format:'pem'}))}),'test-installation-token');
     assert.equal(fetch.mock.callCount(),1);
+  });
+  assert.equal(nativeSign.mock.callCount(),0);
+});
+
+test('WebCrypto imports only the exported DER view, including pooled Buffer byte offsets',async t=>{
+  for(const type of ['Buffer','Uint8Array']) await t.test(type,async t=>{
+    const der=privateKey.export({format:'der',type:'pkcs8'});
+    const padded=Buffer.alloc(der.length+32,0xa5);padded.set(der,13);
+    const view=type==='Buffer'?padded.subarray(13,13+der.length):new Uint8Array(padded.buffer,padded.byteOffset+13,der.length);
+    assert.ok(view.byteOffset>0&&view.byteLength<view.buffer.byteLength);
+    const parse=nodeCrypto.createPrivateKey;
+    const importKey=crypto.subtle.importKey.bind(crypto.subtle);
+    const exportCalls=[];
+    t.mock.method(nodeCrypto,'createPrivateKey',(...args)=>{
+      const parsed=parse(...args);
+      return {asymmetricKeyType:parsed.asymmetricKeyType,export(options){exportCalls.push(options);return view;}};
+    });
+    syncBuiltinESMExports();
+    const imports=t.mock.method(crypto.subtle,'importKey',async(format,keyData,algorithm,extractable,usages)=>{
+      assert.equal(format,'pkcs8');assert.ok(Buffer.from(keyData).equals(der));
+      assert.deepEqual(algorithm,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'});
+      assert.equal(extractable,false);assert.deepEqual(usages,['sign']);
+      return importKey(format,keyData,algorithm,extractable,usages);
+    });
+    t.mock.method(globalThis,'fetch',async(url,options)=>{
+      const [header,claims,signature]=options.headers.Authorization.slice(7).split('.');
+      assert.equal(verify('RSA-SHA256',Buffer.from(`${header}.${claims}`),publicKey,Buffer.from(signature,'base64url')),true);
+      assert.match(signature,/^[A-Za-z0-9_-]+$/);
+      return Response.json({token:'test-token'});
+    });
+    try {
+      assert.equal(await installationToken(env),'test-token');
+      assert.equal(imports.mock.callCount(),1);
+      assert.deepEqual(exportCalls,[{format:'der',type:'pkcs8'}]);
+    } finally {t.mock.restoreAll();syncBuiltinESMExports();}
   });
 });
 
@@ -117,18 +155,71 @@ test('POST /api/submit returns a receipt after JWT, repository writes and metada
   assert.ok(!JSON.stringify(data).includes('test-token'));
 });
 
-test('Native parser and JWT signer exceptions remain distinct and never expose their contents',async t=>{
-  for(const [method,code,stage] of [['createPrivateKey','GITHUB_KEY_INVALID','key_parse'],['sign','GITHUB_JWT_SIGNING_FAILED','jwt_sign']]) await t.test(method,async t=>{
+test('Native parser exceptions retain key_parse classification and expose no exception fields',async t=>{
+  const fetch=t.mock.method(globalThis,'fetch',()=>{throw new Error('Must not call GitHub');});
+  const logs=t.mock.method(console,'error',()=>{});
+  t.mock.method(nodeCrypto,'createPrivateKey',()=>{throw Object.assign(new Error(pem+' test-jwt-marker'),{name:'test-secret-name'});});
+  syncBuiltinESMExports();
+  try {
+    const response=await submitResponse();assert.equal(response.status,503);
+    const data=await response.json();assert.equal(data.code,'GITHUB_KEY_INVALID');assert.equal(data.stage,'key_parse');
+    assert.equal(data.errorName,undefined);assert.equal(data.errorCode,undefined);
+    for(const marker of ['PRIVATE KEY','test-jwt-marker','test-secret-name']) assert.ok(!JSON.stringify(data).includes(marker));
+    assert.equal(logs.mock.callCount(),0);assert.equal(fetch.mock.callCount(),0);
+  } finally {t.mock.restoreAll();syncBuiltinESMExports();}
+});
+
+test('DER export, WebCrypto import and sign failures return safe jwt_sign diagnostics',async t=>{
+  for(const operation of ['export','importKey','sign']) await t.test(operation,async t=>{
     const fetch=t.mock.method(globalThis,'fetch',()=>{throw new Error('Must not call GitHub');});
     const logs=t.mock.method(console,'error',()=>{});
-    t.mock.method(nodeCrypto,method,()=>{throw Object.assign(new Error(pem+' test-jwt-marker'),{name:'test-secret-name'});});
-    syncBuiltinESMExports();
+    const error=operation==='export'?Object.assign(new Error(pem+' test-jwt-marker'),{code:'ERR_METHOD_NOT_IMPLEMENTED'}):new DOMException(pem+' test-jwt-marker',operation==='importKey'?'DataError':'OperationError');
+    if(operation==='export') {
+      const parse=nodeCrypto.createPrivateKey;
+      t.mock.method(nodeCrypto,'createPrivateKey',(...args)=>{
+        const parsed=parse(...args);
+        return {asymmetricKeyType:parsed.asymmetricKeyType,export(){throw error;}};
+      });
+      syncBuiltinESMExports();
+    } else {
+      const original=crypto.subtle[operation].bind(crypto.subtle);
+      t.mock.method(crypto.subtle,operation,async(...args)=>{
+        if(args[0]==='pkcs8'||args[0]==='RSASSA-PKCS1-v1_5') throw error;
+        return original(...args); // Preserve consent/rate-limit HMAC operations.
+      });
+    }
     try {
       const response=await submitResponse();assert.equal(response.status,503);
-      const data=await response.json();assert.equal(data.code,code);assert.equal(data.stage,stage);
-      for(const marker of ['PRIVATE KEY','test-jwt-marker','test-secret-name']) assert.ok(!JSON.stringify(data).includes(marker));
+      const data=await response.json();assert.equal(data.code,'GITHUB_JWT_SIGNING_FAILED');assert.equal(data.stage,'jwt_sign');
+      assert.equal(data.errorName,error.name);assert.equal(data.errorCode,error.code);
+      assert.deepEqual(Object.keys(data).sort(),['code','errorCode','errorName','message','ok','stage']);
+      for(const marker of ['PRIVATE KEY','test-jwt-marker']) assert.ok(!JSON.stringify(data).includes(marker));
       assert.equal(logs.mock.callCount(),0);assert.equal(fetch.mock.callCount(),0);
     } finally {t.mock.restoreAll();syncBuiltinESMExports();}
+  });
+});
+
+test('JWT diagnostics reject arbitrary names/codes and tolerate hostile exception accessors',async t=>{
+  const cases=[
+    {label:'secret strings',error:Object.assign(new Error('test-secret-message'),{name:'test-secret-name',code:'ERR_SECRET_TOKEN_ABC'}),name:'UnknownError'},
+    {label:'secret number',error:Object.assign(new Error('test-secret-message'),{code:123456789}),name:'Error'},
+    {label:'objects',error:{name:{toString(){throw new Error('Must not stringify');}},code:{secret:pem}},name:'UnknownError'},
+    {label:'throwing getter',error:{get name(){throw new Error('test-secret-message');}},name:'UnknownError'},
+    {label:'null',error:null,name:'UnknownError'}
+  ];
+  for(const item of cases) await t.test(item.label,async t=>{
+    const original=crypto.subtle.sign.bind(crypto.subtle);
+    t.mock.method(crypto.subtle,'sign',async(...args)=>{
+      if(args[0]==='RSASSA-PKCS1-v1_5') throw item.error;
+      return original(...args);
+    });
+    const fetch=t.mock.method(globalThis,'fetch',()=>{throw new Error('Must not call GitHub');});
+    const logs=t.mock.method(console,'error',()=>{});
+    const response=await submitResponse();assert.equal(response.status,503);
+    const data=await response.json();assert.equal(data.code,'GITHUB_JWT_SIGNING_FAILED');assert.equal(data.stage,'jwt_sign');
+    assert.equal(data.errorName,item.name);assert.equal(data.errorCode,undefined);
+    for(const marker of ['PRIVATE KEY','test-secret','ERR_SECRET_TOKEN_ABC','123456789']) assert.ok(!JSON.stringify(data).includes(marker));
+    assert.equal(logs.mock.callCount(),0);assert.equal(fetch.mock.callCount(),0);
   });
 });
 
