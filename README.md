@@ -89,6 +89,44 @@ Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 p
 4. 저장소 Actions secrets에 `SUBMISSION_METADATA_SECRET`을 Cloudflare와 동일하게 등록합니다. 자동 배포를 사용하면 `CLOUDFLARE_API_TOKEN`(해당 계정 Pages 편집 및 D1 편집), `CLOUDFLARE_ACCOUNT_ID`도 등록합니다. 서버 코드에는 관리자 개인 GitHub 토큰을 넣지 않습니다.
 5. 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한하고, 버전 확정·배포에는 전용 GitHub App의 단기 토큰을 사용합니다. main 보호 규칙은 PR, 필수 검사 `validate`·`application-check`, 최신 main 반영과 검토 대화 해결을 요구합니다. 일반 필수 승인 인원은 0명으로 두되 **코드 소유자 승인은 필수로 유지**합니다. `.github/CODEOWNERS`에서 `recipes/`를 운영자에게 지정하고 자동 생성 파일 `recipes/index.json`만 제외합니다. 전역 마지막 푸시·추가 승인 의무는 해제해 운영자가 사이트·GitHub 운영 코드 PR을 추가 승인 없이 직접 병합할 수 있게 합니다. 새 커밋이 올라오면 기존 승인을 취소하는 설정은 유지합니다. 버전 자동화 봇의 직접 쓰기 예외는 별도로 제한합니다.
 
+### Production 접수 API 설정 체크리스트
+
+Pages의 `pickle-recipes` 프로젝트 → Settings → Variables and Secrets에서 **Production** 환경을 선택합니다. 개인키와 메타데이터 비밀값은 **Encrypt**로 저장하고, 변경 후 새 Production 배포를 실행해야 해당 배포의 `context.env`에 적용됩니다. 로컬 `.dev.vars`, GitHub Actions secrets, Preview 설정은 Production 런타임 설정을 대신하지 않습니다. [Cloudflare 환경변수·Secrets 문서](https://developers.cloudflare.com/pages/functions/bindings/#secrets)
+
+| 확인할 설정 | 확인 사항 |
+| --- | --- |
+| `GITHUB_APP_ID` | PEM을 발급한 접수용 GitHub App의 App ID. installation ID나 Client secret과 혼동하지 않습니다. JWT issuer로 지원되는 Client ID도 사용할 수 있습니다. 앞뒤 공백·따옴표를 넣지 않습니다. |
+| `GITHUB_INSTALLATION_ID` | 위 App을 `jkc1832/pickle-recipes`에 설치한 installation의 **숫자 ID만** 넣습니다. 설치 설정 URL 전체나 App ID를 넣지 않습니다. |
+| `GITHUB_APP_PRIVATE_KEY` | 폐기되지 않은 키의 BEGIN/END를 포함한 PEM 전체. 파일 경로나 PEM 전체를 다시 Base64 인코딩한 값은 사용할 수 없습니다. 암호화되지 않은 RSA PKCS#1(`BEGIN RSA PRIVATE KEY`)·PKCS#8(`BEGIN PRIVATE KEY`)을 지원합니다. |
+| `SUBMISSION_METADATA_SECRET` | 충분히 긴 임의 문자열을 Pages와 저장소 Actions secret에 **바이트 단위로 동일하게** 등록합니다. 따옴표·끝 줄바꿈·공백도 값의 일부입니다. 코드가 임의로 정규화하지 않습니다. |
+
+개인키의 실제 LF/CRLF, 문자 그대로의 `\n`/`\r\n`, 앞뒤 공백·BOM 및 한 겹의 짝지어진 따옴표를 정규화합니다. PEM 본문 손상, 암호화 키, 공개키, EC 키는 거부합니다. GitHub 기본 발급 키는 PKCS#1이며 현재 구현의 `node:crypto.createPrivateKey`는 PKCS#1과 PKCS#8을 모두 읽으므로 별도 변환이 필요하지 않습니다. JWT는 `RS256`으로 서명합니다. WebCrypto의 `importKey('pkcs8', ...)`로 구현을 바꿀 경우 PKCS#1 바이트를 그대로 전달할 수 없다는 점에 주의하세요. [GitHub 개인키 형식](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps), [GitHub JWT 문서](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app)
+
+- App의 Repository permissions는 **Contents: Read and write**, **Pull requests: Read and write**이며, 설치 대상에 `jkc1832/pickle-recipes`가 포함되어야 합니다. 권한을 바꿨다면 설치 소유자의 변경 승인까지 확인합니다. App 설치가 중지되거나 삭제되지 않았는지도 확인합니다.
+- 일반 변수 `GITHUB_REPOSITORY=jkc1832/pickle-recipes`, `GITHUB_DEFAULT_BRANCH=main`과 `DB` 바인딩·마이그레이션도 필요합니다. 접수 PR의 대상인 `main`과 Pages 배포 브랜치인 `production`은 서로 다른 설정입니다. `wrangler.jsonc`의 `nodejs_compat`와 compatibility date가 실제 배포에도 반영되었는지 확인합니다.
+- 메타데이터 비밀값 불일치는 GitHub JWT 인증 실패가 아닙니다. 접수 PR이 생성되더라도 `scripts/release.mjs`의 HMAC 검증 또는 운영 점검이 실패할 수 있습니다. 런타임에서는 Actions secret과 비교할 수 없으므로 동일한 원본에서 두 곳에 등록합니다. 교체할 때는 기존 접수 PR의 서명도 영향을 받습니다.
+
+### `POST /api/submit` 오류 진단
+
+기존에는 `createPrivateKey`, JWT 인코딩·`sign`, `fetch` 연결·타임아웃, 응답 JSON 해석에서 발생한 일반 예외가 `submit.js`를 거쳐 미들웨어까지 전파되어 모두 `503 SERVICE_UNAVAILABLE`로 바뀌었습니다. `GITHUB_NOT_CONFIGURED`는 필수 값 누락만, `GITHUB_ERROR`는 GitHub에서 받은 비정상 HTTP 응답만 처리했습니다. 기존 코드에도 `\n` 변환은 있었으며, 정상 PKCS#1/PKCS#8과 `\n` 입력은 로컬 Cloudflare 런타임에서 동작합니다. 같은 런타임에서 기존 코드의 문자 그대로인 `\r\n`·외부 따옴표 입력 실패를 재현했고, 수정 후 두 형식의 10개 조합 모두 서명을 검증했습니다. 운영 키의 실제 입력 상태나 배포 설정은 별도 확인이 필요합니다.
+
+아래 오류 응답에는 고정된 `code`, `stage`, 사용자 안내 및 해당하는 경우 숫자 `upstreamStatus`만 넣습니다. 개인키·JWT·installation token·Authorization 헤더·GitHub 응답 본문·원본 예외 메시지/스택은 응답이나 로그에 넣지 않습니다.
+
+| HTTP / code | stage | 확인할 부분 |
+| --- | --- | --- |
+| 503 `GITHUB_NOT_CONFIGURED` | `configuration` | 필수 값 누락·빈 문자열·공백만 있는 값 |
+| 503 `GITHUB_CONFIG_INVALID` | `configuration` | ID·저장소 경로·환경변수 타입 |
+| 503 `GITHUB_KEY_INVALID` | `key_parse` | PEM 정규화·헤더·키 파싱·RSA 키 종류 |
+| 503 `GITHUB_JWT_SIGNING_FAILED` | `jwt_sign` | JWT 인코딩·RSA 서명 및 런타임 호환성 |
+| 502 `GITHUB_ERROR` | `github_api` | `upstreamStatus` 확인: 401은 App ID·키·JWT 시간, 403은 권한·설치 상태·제한, 404는 설치/저장소/브랜치 접근, 422는 토큰 범위·요청 내용 등을 점검 |
+| 502 `GITHUB_NETWORK_ERROR` / 504 `GITHUB_TIMEOUT` | `github_api` | 연결·타임아웃 실패 |
+| 502 `GITHUB_RESPONSE_INVALID` | `github_api` | JSON 본문 읽기/해석 실패 또는 토큰 누락 |
+| 503 `SUBMISSION_METADATA_SIGNING_FAILED` | `metadata_sign` | PR 메타데이터 HMAC의 WebCrypto `importKey`·`sign` 실패 |
+
+`SUBMISSION_METADATA_SECRET`나 `DB`가 아예 없으면 공통 rate-limit 미들웨어가 접수 처리보다 먼저 `503 SECURITY_UNAVAILABLE`을 반환합니다. D1 장애 등 분류되지 않은 내부 오류의 `503 SERVICE_UNAVAILABLE`은 유지합니다. 응답 코드로 원인을 좁히고, PR 생성 도중 실패했다면 재제출 전에 기존 브랜치/PR을 확인하세요.
+
+회귀 테스트 `node --test tests/github-auth.test.mjs tests/github.test.mjs`는 임시 생성 키와 모의 GitHub 응답만 사용하여 PEM 형식별 실제 RSA 서명 검증, 키·서명·통신 실패 분류, `/api/submit`→미들웨어 응답 및 비밀값 비노출을 검사합니다. 운영 점검은 새 Production 배포 후 동의가 있는 유효한 제출로 `201`과 PR 접수번호를 확인하고, 운영자가 PR 서명 검증까지 확인합니다. `/api/health` 성공만으로 GitHub App 연결이 검증되지는 않습니다.
+
 ## 접수와 버전 자동화
 
 운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`의 PR·필수 검사(`validate`, `application-check`)·최신 main 반영·검토 대화 해결은 모든 변경에 적용하며, 승인 리뷰는 변경 경로에 따라 구분합니다.
