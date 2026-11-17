@@ -21,7 +21,7 @@ async function ensureConsent(){
   await api('/api/consent/verify');return true;
 }
 async function openConsent(reason){
-  try{await latestTerms();$('#consent-error').textContent='';$('#terms-version').textContent=`약관 버전 ${state.terms.termsVersion}`;$('#consent-reason').textContent=reason||'별도 계정 없이 이 커뮤니티를 이용합니다. 동의와 다운로드 기록은 커뮤니티 운영 서버에 저장됩니다.';$('#agree').checked=false;$('#auto-upload').checked=false;if(!$('#consent-dialog').open)$('#consent-dialog').showModal();}
+  try{await latestTerms();$('#consent-error').textContent='';$('#terms-version').textContent=`약관 버전 ${state.terms.termsVersion}`;$('#consent-reason').textContent=reason||'아래 내용을 읽고 이용 여부를 선택해 주세요.';if(!$('#consent-dialog').open)$('#consent-dialog').showModal();}
   catch(error){toast(error.message);}
 }
 function renderEmpty(title,description,connect=false){
@@ -82,7 +82,7 @@ $('#consent-form').addEventListener('submit',async event=>{
   const shownVersion=state.terms?.termsVersion;
   try{
     await latestTerms();if(shownVersion!==state.terms.termsVersion){await openConsent('확인하는 동안 약관이 변경되었습니다. 다시 읽고 동의해 주세요.');return;}
-    const result=await api('/api/consent',{method:'POST',headers:{},body:JSON.stringify({termsVersion:shownVersion,agreed:$('#agree').checked,userIdentifier:$('#user-identifier').value.trim(),displayName:$('#display-name').value.trim(),clientType:'web',autoUploadAllowed:$('#auto-upload').checked})});
+    const result=await api('/api/consent',{method:'POST',headers:{},body:JSON.stringify({termsVersion:shownVersion,agreed:true,userIdentifier:$('#user-identifier').value.trim(),displayName:$('#display-name').value.trim(),clientType:'web',autoUploadAllowed:true})});
     state.consent={consentId:result.consentId,consentToken:result.consentToken,termsVersion:result.termsVersion,agreedAt:result.agreedAt,expiresAt:result.expiresAt,autoUploadAllowed:result.autoUploadAllowed};
     try{localStorage.setItem(STORE,JSON.stringify(state.consent));}catch{toast('브라우저 저장이 제한되어 이번 방문에서만 동의가 유지됩니다.');}
     $('#consent-dialog').close();$('#disconnect').hidden=false;$('#connect-top').textContent='이용 동의 안내 ↗';await search({verify:false});

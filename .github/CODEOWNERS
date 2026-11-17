@@ -1,7 +1,7 @@
-# Protect these paths with required code-owner review on main.
-/.github/ @jkc1832
-/functions/ @jkc1832
-/lib/ @jkc1832
-/scripts/ @jkc1832
-/terms* @jkc1832
-/wrangler.jsonc @jkc1832
+# Recipe and connector changes require the operator's approval before merging.
+# Main requires code-owner reviews even when the general approval count is zero.
+/recipes/ @jkc1832
+
+# The generated catalog is site infrastructure, not a submitted recipe bundle.
+# This later ownerless rule excludes only this exact file from code-owner review.
+/recipes/index.json
