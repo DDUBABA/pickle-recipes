@@ -18,7 +18,7 @@ export async function maintenance(){
   const time=String(Date.now()),nonce=randomUUID();
   const signature=createHmac('sha256',secret).update(`pickle-maintenance-v1\n${time}\n${nonce}\nPOST\n/api/admin/maintenance\nretention`).digest('hex');
   const data=await request('/api/admin/maintenance',{method:'POST',headers:{'Content-Type':'application/json','X-Operations-Time':time,'X-Operations-Nonce':nonce,'X-Operations-Signature':signature},body:JSON.stringify({action:'retention'})});
-  console.log(`Retention maintenance completed; ${data.retentionDays} days. Consent evidence and lifetime item counters retained.`);
+  console.log(`Retention maintenance ${data.ran?'completed':'skipped (24-hour interval)'}; ${data.retentionDays} days. Active consents and lifetime item counters retained.`);
 }
 await check();
 if(process.argv.includes('--maintenance'))await maintenance();

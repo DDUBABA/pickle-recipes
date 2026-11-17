@@ -1,32 +1,39 @@
 const $ = selector => document.querySelector(selector);
 const state = {kind:'',consent:null,terms:null,catalog:null,limit:30,request:0};
 const STORE='pickle-recipes-consent';
-try { state.consent=JSON.parse(localStorage.getItem(STORE)); } catch { localStorage.removeItem(STORE); }
+try { state.consent=JSON.parse(localStorage.getItem(STORE)); } catch { state.consent=null; }
 const el=(tag,text,className)=>{const node=document.createElement(tag); if(text!==undefined)node.textContent=text; if(className)node.className=className; return node;};
-let toastTimer, searchTimer;
+let toastTimer, searchTimer, consentDecision;
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,5000);}
 function headers(){return state.consent?{'Authorization':`Bearer ${state.consent.consentToken}`,'X-Consent-Id':state.consent.consentId,'X-Terms-Version':state.consent.termsVersion}:{};}
-function clearConnection(){state.consent=null;state.request++;localStorage.removeItem(STORE);$('#disconnect').hidden=true;$('#connect-top').textContent='이용 안내 ↗';if($('#detail-dialog').open)$('#detail-dialog').close();renderEmpty('이 커뮤니티 이용 동의가 필요해요.','약관과 기록 수집 안내를 확인한 후 시작하세요.',true);}
+function connectionUI(){$('#disconnect').hidden=!state.consent;$('#connect-top').textContent='이용 동의 안내 ↗';}
+function clearConnection(){state.consent=null;try{localStorage.removeItem(STORE);}catch{}connectionUI();}
 async function api(path,options={}){
-  const response=await fetch(path,{cache:'no-store',...options,headers:{...headers(),...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});
+  const response=await fetch(path,{cache:'no-store',...options,headers:{...(path.startsWith('/api/consent/verify')||options.method==='POST'?headers():{}),...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});
   let result;try{result=await response.json();}catch{throw new Error('서버 응답을 읽지 못했습니다. 연결 상태를 확인해 주세요.');}
-  if(!response.ok){if(result.requiresConsent||result.requiresReconsent){clearConnection();await openConsent(result.message);}throw new Error(result.message||'요청을 완료하지 못했습니다.');}
+  if(!response.ok)throw Object.assign(new Error(result.message||'요청을 완료하지 못했습니다.'),{requiresConsent:result.requiresConsent||result.requiresReconsent});
   return result;
 }
 async function latestTerms(){const response=await fetch('/terms.json',{cache:'no-store'});if(!response.ok)throw new Error('최신 약관을 불러오지 못했습니다.');state.terms=await response.json();return state.terms;}
 async function ensureConsent(){
   await latestTerms();
-  if(!state.consent){await openConsent();return false;}
-  if(state.consent.termsVersion!==state.terms.termsVersion){clearConnection();await openConsent('약관이 변경되었습니다. 내용을 확인하고 다시 동의해 주세요.');return false;}
-  await api('/api/consent/verify');return true;
+  if(!state.consent)return requestConsent();
+  if(state.consent.termsVersion!==state.terms.termsVersion){clearConnection();return requestConsent('약관이 변경되었습니다. 내용을 확인하고 다시 동의해 주세요.');}
+  try{await api('/api/consent/verify');return true;}
+  catch(error){if(!error.requiresConsent)throw error;clearConnection();return requestConsent(error.message);}
 }
+async function requestConsent(reason){
+  if(!await openConsent(reason))return false;
+  return new Promise(resolve=>{consentDecision=resolve;});
+}
+function finishConsent(accepted){const resolve=consentDecision;consentDecision=null;resolve?.(accepted);}
 async function openConsent(reason){
-  try{await latestTerms();$('#consent-error').textContent='';$('#terms-version').textContent=`약관 버전 ${state.terms.termsVersion}`;$('#consent-reason').textContent=reason||'아래 내용을 읽고 이용 여부를 선택해 주세요.';if(!$('#consent-dialog').open)$('#consent-dialog').showModal();}
-  catch(error){toast(error.message);}
+  try{await latestTerms();$('#consent-error').textContent='';$('#terms-version').textContent=`약관 버전 ${state.terms.termsVersion}`;$('#consent-reason').textContent=reason||'다운로드·공유 전에 아래 내용을 읽고 이용 여부를 선택해 주세요.';if(!$('#consent-dialog').open)$('#consent-dialog').showModal();return true;}
+  catch(error){toast(error.message);return false;}
 }
-function renderEmpty(title,description,connect=false){
+function renderEmpty(title,description){
   const box=el('div',undefined,'empty-state');box.append(el('div','↗','empty-icon'),el('h3',title),el('p',description));
-  if(connect){const button=el('button','안내 확인하고 시작하기','primary');button.onclick=()=>openConsent();box.append(button);}else{const link=el('a','커뮤니티 가이드 보기 ↗','outline');link.href='/guide.md';box.append(link);}
+  const link=el('a','커뮤니티 가이드 보기 ↗','outline');link.href='/guide.md';box.append(link);
   $('#catalog').replaceChildren(box);$('#more').hidden=true;
 }
 function renderCards(items){
@@ -41,9 +48,8 @@ function renderCards(items){
     card.append(bottom);return card;
   }));
 }
-async function search({verify=true}={}){
+async function search(){
   try{
-    if(verify && !await ensureConsent())return;
     const revision=++state.request;$('#catalog').setAttribute('aria-busy','true');
     const params=new URLSearchParams({q:$('#search').value,kind:state.kind,category:$('#category').value,authType:$('#auth').value,sort:$('#sort').value,limit:state.limit});
     const result=await api(`/api/search?${params}`);if(revision!==state.request)return;
@@ -51,12 +57,11 @@ async function search({verify=true}={}){
     if(!result.items.length)renderEmpty(result.total===0&&!$('#search').value&&!state.kind&&!$('#category').value&&!$('#auth').value?'첫 번째 자동화를 기다리고 있어요.':'검색 결과가 없어요.','다른 검색어나 필터를 사용해 보세요. 새 자동화는 피클을 통해 공유할 수 있어요.');
     else renderCards(result.items);
     $('#more').hidden=result.items.length>=result.total||state.limit>=100;
-  }catch(error){toast(error.message);if(state.consent)renderEmpty('지금은 목록을 불러올 수 없어요.',error.message);}
+  }catch(error){toast(error.message);renderEmpty('지금은 목록을 불러올 수 없어요.',error.message);}
   finally{$('#catalog').setAttribute('aria-busy','false');}
 }
 async function showDetail(id){
   try{
-    if(!await ensureConsent())return;
     const {item}=await api(`/api/items/${encodeURIComponent(id)}`);const content=$('#detail-content');content.replaceChildren();
     const title=el('h2',item.name);title.id='detail-name';
     content.append(el('p',item.kind==='connector'?'CONNECTOR':'RECIPE','eyebrow'),title,el('p',item.description,'detail-description'),el('p',`v${item.version} · ${item.category} · ${item.authType} · ⬇ ${item.totalDownloads.toLocaleString('ko-KR')}`,'detail-meta'));
@@ -66,15 +71,22 @@ async function showDetail(id){
     if(!item.releases.length)timeline.append(el('p','아직 공개된 릴리즈 이력이 없습니다.','muted'));
     for(const release of item.releases){const row=el('article',undefined,'release');row.append(el('strong',`v${release.version}${release.baseVersion?` ← v${release.baseVersion}`:''} · ${release.submittedBy}`));if(release.prNumber){const link=el('a',` · PR #${release.prNumber}`);link.href=`https://github.com/jkc1832/pickle-recipes/pull/${release.prNumber}`;link.target='_blank';link.rel='noopener';row.append(link);}row.append(el('p',`${new Date(release.date).toLocaleDateString('ko-KR')} · ${release.summary}`));timeline.append(row);}
     content.append(timeline);const readme=el('details');readme.append(el('summary','실행 안내와 설정 보기'),el('pre',item.readme,'readme'));content.append(readme);
-    const download=el('button','동의 확인 후 JSON 번들 다운로드 ↓','primary detail-download');download.onclick=async()=>{download.disabled=true;try{await downloadItem(item);}finally{download.disabled=false;}};content.append(download);
+    const download=el('button','JSON 번들 다운로드 ↓','primary detail-download');download.onclick=async()=>{download.disabled=true;try{await downloadItem(item);}finally{download.disabled=false;}};content.append(download);
     if(!$('#detail-dialog').open)$('#detail-dialog').showModal();
   }catch(error){toast(error.message);}
 }
 async function downloadItem(item){
   try{
     if(!await ensureConsent())return;
-    const bundle=await api('/api/download',{method:'POST',body:JSON.stringify({itemId:item.id,consentId:state.consent.consentId,termsVersion:state.consent.termsVersion,clientType:'web'})});
-    const url=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}));const link=el('a');link.href=url;link.download=`${item.id}-v${bundle.version}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast('번들을 내려받았습니다. 피클에게 설치를 요청하세요.');await search({verify:false});
+    const send=()=>api('/api/download',{method:'POST',body:JSON.stringify({itemId:item.id,consentId:state.consent.consentId,termsVersion:state.consent.termsVersion,clientType:'web'})});
+    let bundle;
+    try{bundle=await send();}
+    catch(error){
+      // Retry only an explicit consent rejection, never an uncertain download response.
+      if(!error.requiresConsent)throw error;
+      clearConnection();if(!await requestConsent(error.message))return;bundle=await send();
+    }
+    const url=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}));const link=el('a');link.href=url;link.download=`${item.id}-v${bundle.version}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast('번들을 내려받았습니다. 피클에게 설치를 요청하세요.');await search();
   }catch(error){toast(error.message);}
 }
 $('#consent-form').addEventListener('submit',async event=>{
@@ -85,35 +97,33 @@ $('#consent-form').addEventListener('submit',async event=>{
     const result=await api('/api/consent',{method:'POST',headers:{},body:JSON.stringify({termsVersion:shownVersion,agreed:true,userIdentifier:$('#user-identifier').value.trim(),displayName:$('#display-name').value.trim(),clientType:'web',autoUploadAllowed:true})});
     state.consent={consentId:result.consentId,consentToken:result.consentToken,termsVersion:result.termsVersion,agreedAt:result.agreedAt,expiresAt:result.expiresAt,autoUploadAllowed:result.autoUploadAllowed};
     try{localStorage.setItem(STORE,JSON.stringify(state.consent));}catch{toast('브라우저 저장이 제한되어 이번 방문에서만 동의가 유지됩니다.');}
-    $('#consent-dialog').close();$('#disconnect').hidden=false;$('#connect-top').textContent='이용 동의 안내 ↗';await search({verify:false});
+    connectionUI();finishConsent(true);$('#consent-dialog').close();
   }catch(error){$('#consent-error').textContent=error.message;}finally{button.disabled=false;}
 });
-$('#connect-top').onclick=()=>openConsent();$('#start-search').onclick=()=>openConsent();
+$('#connect-top').onclick=()=>openConsent();
+$('#consent-dialog').addEventListener('close',()=>finishConsent(false));
 document.querySelectorAll('[data-close]').forEach(button=>button.onclick=()=>document.getElementById(button.dataset.close).close());
 $('#disconnect').onclick=async()=>{
   if(!state.consent)return;const button=$('#disconnect');button.disabled=true;
   try{
-    // Withdrawal remains available with an authentic token even after terms change or token expiry.
+    // Withdrawal remains available with an authentic token even after terms change.
     const response=await fetch('/api/consent/revoke',{method:'POST',headers:{...headers(),'Content-Type':'application/json'},body:JSON.stringify({consentId:state.consent.consentId})});
     const result=await response.json();if(!response.ok)throw new Error(result.message||'동의를 철회하지 못했습니다. 다시 시도해 주세요.');
-    clearConnection();toast('이용 동의를 철회하고 접근을 차단했습니다. 동의·철회 증빙은 보존됩니다.');
+    clearConnection();toast('연결을 해제했습니다. 계속 둘러볼 수 있으며 동의·철회 기록은 철회 후 180일이 지나면 삭제됩니다.');
   }catch(error){toast(error.message);}finally{button.disabled=false;}
 };
 $('#search-form').onsubmit=event=>{event.preventDefault();clearTimeout(searchTimer);state.limit=30;search();};
-$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);if(state.consent)searchTimer=setTimeout(()=>{state.limit=30;search();},300);});
+$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{state.limit=30;search();},300);});
 document.querySelectorAll('[data-kind]').forEach(button=>button.onclick=()=>{state.kind=button.dataset.kind;state.limit=30;document.querySelectorAll('[data-kind]').forEach(tab=>{tab.classList.toggle('selected',tab===button);tab.setAttribute('aria-pressed',String(tab===button));});search();});
 for(const selector of ['#category','#auth','#sort'])$(selector).onchange=()=>{state.limit=30;search();};
 $('#more').onclick=()=>{state.limit=Math.min(100,state.limit+30);search();};
 $('#copy-address').onclick=async()=>{try{await navigator.clipboard.writeText(`${location.origin}/`);toast('주소를 복사했습니다. 피클에게 붙여넣어 주세요.');}catch{toast(`피클에게 이 주소를 알려주세요: ${location.origin}/`);}};
-async function checkVersion(){if(!state.consent)return;try{await ensureConsent();}catch(error){clearConnection();toast(error.message);}}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkVersion();});
-setInterval(()=>{if(!document.hidden)checkVersion();},60000);
-window.addEventListener('storage',event=>{if(event.key===STORE){try{state.consent=JSON.parse(event.newValue);}catch{state.consent=null;}if(state.consent)search();else clearConnection();}});
+window.addEventListener('storage',event=>{if(event.key===STORE){try{state.consent=JSON.parse(event.newValue);}catch{state.consent=null;}connectionUI();}});
 async function init(){
   try{
     const response=await fetch('/recipes/index.json',{cache:'no-store'});if(!response.ok)throw new Error('카탈로그 정보를 불러오지 못했습니다.');state.catalog=await response.json();
     for(const [selector,key]of [['#category','category'],['#auth','authType']])for(const value of [...new Set(state.catalog.items.filter(item=>item.status!=='blocked').map(item=>item[key]))].sort()){const option=el('option',value==='none'?'인증 불필요':value);option.value=value;$(selector).append(option);}
-    if(state.consent){$('#disconnect').hidden=false;$('#connect-top').textContent='이용 동의 안내 ↗';await search();}
+    connectionUI();await search();
   }catch(error){toast(error.message);}
 }
 init();

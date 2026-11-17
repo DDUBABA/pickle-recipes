@@ -46,7 +46,7 @@ node --test tests/*.test.mjs
    pnpm exec wrangler d1 create pickle-recipes
    ```
 
-2. 다른 계정에 배포할 때는 반환된 `database_id`로 `wrangler.jsonc`의 기존 UUID를 교체합니다. 현재 UUID는 이 프로젝트용으로 생성한 D1을 가리킵니다. 바인딩 이름은 반드시 `DB`입니다. `migrations/0001_init.sql`에 요청한 3개 테이블이 있습니다. `consents`에는 비밀 동의 토큰 해시와 자동 업로드 허용 여부 필드 2개를 추가했습니다.
+2. 다른 계정에 배포할 때는 반환된 `database_id`로 `wrangler.jsonc`와 `wrangler.retention.jsonc`의 UUID를 함께 교체합니다. 현재 UUID는 이 프로젝트용으로 생성한 D1을 가리킵니다. 바인딩 이름은 반드시 `DB`입니다. `migrations/0001_init.sql`에 요청한 3개 테이블이 있습니다. `consents`에는 비밀 동의 토큰 해시와 자동 업로드 허용 여부 필드 2개를 추가했습니다.
 
 3. 원격 마이그레이션과 Pages 프로젝트 생성을 진행합니다.
 
@@ -75,7 +75,7 @@ node --test tests/*.test.mjs
    pnpm run deploy
    ```
 
-7. 실서비스에서 `/terms.json`, `/guide.md`, `/api/consent/verify` 미동의 403, 동의 후 검색·다운로드, D1 카운트를 확인합니다. D1 production과 preview는 다른 DB를 사용하고 **PR preview에 운영 GitHub App 키나 관리자 토큰을 주입하지 마세요.** Pages의 Functions 한도 초과 정책은 fail closed로 설정하세요.
+7. 실서비스에서 `/terms.json`, `/guide.md`, `/api/consent/verify` 미동의 403, 미동의 검색·상세 열람과 동의 후 다운로드, D1 카운트를 확인합니다. D1 production과 preview는 다른 DB를 사용하고 **PR preview에 운영 GitHub App 키나 관리자 토큰을 주입하지 마세요.** Pages의 Functions 한도 초과 정책은 fail closed로 설정하세요.
 
 Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 production branch를 `production`으로 지정하세요. Build command는 `node scripts/build.mjs`, output directory는 `dist`, 환경변수는 `NODE_VERSION=22`, `SKIP_DEPENDENCY_INSTALL=1`입니다. 빌드 스크립트는 외부 npm 패키지가 필요하지 않고 Cloudflare가 Functions를 컴파일합니다. Preview branch 배포는 비활성화하세요. Actions가 릴리즈와 검사를 완료한 커밋만 `production` 브랜치에 fast-forward로 올리므로 미확정 main 머지를 자동 배포하지 않습니다.
 
@@ -129,6 +129,32 @@ Pages의 `pickle-recipes` 프로젝트 → Settings → Variables and Secrets에
 
 회귀 테스트 `node --test tests/github-auth.test.mjs tests/github.test.mjs`는 임시 생성 키와 모의 GitHub 응답만 사용하여 PEM 형식별 실제 RSA 공개키 서명 검증, 키·서명·통신 실패 분류, `/api/submit`→미들웨어 응답 및 비밀값 비노출을 검사합니다. Node의 sign이 실패하도록 설정해도 JWT가 생성되는지, byteOffset이 있는 Buffer/Uint8Array의 DER 구간만 가져오는지, 예외 name/code에 비밀값이 들어 있어도 차단하는지도 확인합니다. 운영 점검은 새 Production 배포 후 동의가 있는 유효한 제출로 `201`과 PR 접수번호를 확인하고, 운영자가 PR 서명 검증까지 확인합니다. `/api/health` 성공만으로 GitHub App 연결이 검증되지는 않습니다.
 
+## 동의·Retention 변경 배포 순서
+
+기존 운영 환경에는 **Pages 새 코드 배포 전에** 아래 D1 마이그레이션을 적용합니다. 이어서 이 변경을 포함한 Pages를 배포하고 Cron Worker를 배포합니다. 기존 Git 연동에서는 PR 병합 후 릴리즈 작업이 갱신하는 production 브랜치가 Pages 배포 대상입니다.
+
+```sh
+pnpm exec wrangler d1 migrations apply DB --remote -c wrangler.jsonc
+# 이 변경을 포함한 Pages 배포 후:
+pnpm exec wrangler deploy -c wrangler.retention.jsonc
+```
+
+- `0003_consent_retention.sql`은 기존 expires_at을 NULL로 바꾸고, last_used_at을 동의 시각과 마지막 다운로드 시각 중 최신 값으로 채웁니다. 기존 약관 버전·철회·자동 업로드 선택은 그대로이며 약관 2026-11-17.5에는 재동의가 필요합니다. 이전 시스템이 검증 시각을 기록하지 않았으므로 과거 활동은 이 두 기록으로만 복원합니다.
+- `workers/retention-cron/index.js`는 Pages와 같은 D1을 직접 정리합니다. `0 19 * * *`는 UTC 19시, 한국시간 매일 새벽 4시입니다. HTTP 공개 경로와 별도 인증 Secret은 사용하지 않습니다.
+- Pages의 POST 요청은 요청 처리 후 Lazy Cleanup을 예약합니다. Cron·Lazy·수동 정리는 `lib/retention.js`와 `retention_state`를 공유하여 성공한 정리 간 최소 24시간을 지킵니다. 최근 활동을 먼저 갱신하며, 실행 식별자 획득과 모든 삭제가 하나의 D1 batch 트랜잭션이므로 동시 요청은 한 번만 정리하고 실패 시 타임스탬프도 롤백합니다. Lazy 오류는 원래 API 응답을 바꾸지 않고 다음 요청에서 재시도합니다. Cron 오류는 실패 실행으로 기록됩니다.
+- 철회 180일 경과 및 미철회·최근 활동 180일 경과 동의는 자식 로그·이력을 먼저 삭제한 뒤 제거합니다. 최근 활동한 동의는 유지하되 오래된 IP·User-Agent는 지웁니다. 누적 item_stats는 변경하지 않습니다. 단순 공개 열람은 동의 활동 시각을 갱신하지 않습니다.
+- `GET /api/health`의 `retentionLastRunAt`으로 마지막 성공 시각을 확인합니다. 아직 실행되지 않았으면 null이며, 매일 정리가 실행되는지는 Worker의 Scheduled/Observability 기록과 함께 확인합니다. Cron이 아직 배포되지 않아도 Pages POST 요청이 정리를 수행하지만 요청이 전혀 없는 기간에는 Cron이 필요합니다.
+
+로컬 검증:
+
+```sh
+node scripts/build.mjs
+node --test tests/*.test.mjs
+pnpm exec wrangler d1 migrations apply DB --local -c wrangler.jsonc
+pnpm exec wrangler pages functions build --outdir .wrangler/pages-check --compatibility-date 2026-11-17 --compatibility-flags nodejs_compat
+pnpm exec wrangler deploy --dry-run -c wrangler.retention.jsonc
+```
+
 ## 접수와 버전 자동화
 
 운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`의 PR·필수 검사(`validate`, `application-check`)·최신 main 반영·검토 대화 해결은 모든 변경에 적용하며, 승인 리뷰는 변경 경로에 따라 구분합니다.
@@ -142,7 +168,7 @@ Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 
 
 `POST /api/submit` 형식과 전체 동의 절차는 [guide.md](guide.md)를 따릅니다. API는 새 버전 입력을 거부하며 `baseVersion`, 공개용 `submittedBy`, `summary`, `type`, `meta`, `files`를 받습니다. 새 항목의 PR에는 임시 메타 `version:"1.0"`, `releases:[]`가 들어가지만, 릴리즈 전에는 사이트 카탈로그/번들에 노출되지 않습니다.
 
-약관 `2026-11-17.4`의 동의 카드는 ‘동의하지 않음’과 ‘동의하고 이용’ 두 버튼만 제공합니다. ‘동의하고 이용’에는 규격·개인정보 제거 검증을 거친 공통 코드의 자동 업로드 허용이 포함됩니다. `POST /api/consent`는 `autoUploadAllowed`를 생략하면 `true`, 명시적으로 `false`를 보내면 `false`로 저장하고 반환합니다. 기존 동의 기록은 변경하지 않으며 이전 약관 이용자는 재동의해야 합니다. AI는 사용자의 자동 업로드 중지 요청을 로컬에 보존하고 재개 요청 전까지 제출하지 않아야 합니다. 실행 전 대상·권한·비용과 실행 후 실제 처리 결과를 확인할 최종 책임은 사용자에게 있습니다.
+약관 `2026-11-17.5`의 동의 카드는 ‘동의하지 않음’과 ‘동의하고 이용’ 두 버튼만 제공합니다. ‘동의하고 이용’에는 규격·개인정보 제거 검증을 거친 공통 코드의 자동 업로드 허용이 포함됩니다. `POST /api/consent`는 `autoUploadAllowed`를 생략하면 `true`, 명시적으로 `false`를 보내면 `false`로 저장하고 반환합니다. 기존 동의 기록은 변경하지 않으며 이전 약관 이용자는 재동의해야 합니다. AI는 사용자의 자동 업로드 중지 요청을 로컬에 보존하고 재개 요청 전까지 제출하지 않아야 합니다. 실행 전 대상·권한·비용과 실행 후 실제 처리 결과를 확인할 최종 책임은 사용자에게 있습니다.
 
 - 새 항목: 1.0. 패치: 현재 확정 버전 1.2 → 1.3; 1.9 → 2.0.
 - 리믹스/이식: 새 ID로 1.0, 부모 기준 버전을 릴리즈 이력에 남깁니다.
@@ -160,31 +186,32 @@ Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 
 | API | 설명 |
 | --- | --- |
 | `POST /api/consent` | 최신 버전·agreed true·userIdentifier 검사 후 기록, 비밀 consentToken 1회 반환 |
-| `GET /api/consent/verify` | 동의 토큰·ID·최신 약관 버전·90일 만료·철회 여부 검증 |
-| `POST /api/consent/revoke` | 토큰 소유 확인 후 동의 철회. 기존 동의·철회 증빙 보존 |
+| `GET /api/consent/verify` | 동의 토큰·ID·최신 약관 버전·미철회 검증, last_used_at 갱신 |
+| `POST /api/consent/revoke` | 토큰 소유 확인 후 동의 철회. 철회 180일 후 관련 기록 정리 |
 | `GET /api/health` | DB 보안 스키마·현재 런타임 약관 상태 확인 |
-| `GET /api/search` | q, kind, category, authType, sort, limit; blocked 제외 |
-| `GET /api/items/:id` | 상세, README, requires, 릴리즈, 다운로드 수 |
+| `GET /api/search` | 동의 없이 q, kind, category, authType, sort, limit 검색; blocked 제외 |
+| `GET /api/items/:id` | 동의 없이 상세, README, requires, 릴리즈, 다운로드 수 열람 |
 | `POST /api/download` | 동의 검증, D1 batch 로그+집계, JSON 번들 |
 | `POST /api/submit` | 규격·PII·위험 코드·중복 검사 후 GitHub PR 접수 |
-| `GET /api/stats` | group=items/daily/versions/users, format=json/csv, limit/offset |
+| `GET /api/stats` | items 공개, daily/versions/users 관리자 전용; format=json/csv, limit/offset |
 
 동의 후 API 헤더는 `Authorization: Bearer <consentToken>`, `X-Consent-Id`, `X-Terms-Version`입니다. POST download/submit은 ID·버전을 본문에도 포함합니다. 관리자 통계 토큰은 Authorization에 단독 사용합니다. 타 출처 웹페이지 CORS는 허용하지 않으며 피클 서버/CLI의 직접 HTTP 요청은 지원합니다.
 
 ## 운영 경계
 
-- 공개 GitHub 소스와 정적 전체 카탈로그는 직접 열람할 수 있습니다. **MIT 원본 접근까지 동의로 통제한다고 주장하지 않습니다.** 사이트 API는 동의를 강제하고 피클의 정적 검색·로컬 실행·예약 실행은 가이드 준수가 필요합니다. 로컬 실행 자체를 사이트 서버가 원격으로 차단할 수는 없습니다.
+- 공개 GitHub 소스와 정적 전체 카탈로그는 직접 열람할 수 있습니다. **MIT 원본 접근까지 동의로 통제한다고 주장하지 않습니다.** 공개 검색·상세·항목별 통계 API는 동의 없이 이용하며 다운로드·제출 API는 동의를 검증합니다. 피클의 로컬 실행·예약 실행은 가이드 준수가 필요합니다. 로컬 실행 자체를 사이트 서버가 원격으로 차단할 수는 없습니다.
 - `userIdentifier`는 자기 신고 식별자이며 실명·피클 계정 소유 증명이 아닙니다. 통계는 다운로드 요청 수이며 설치 완료·실사용·고유 인원 통계가 아닙니다. 개인 식별자를 임의로 쓰면 여러 사용자가 같은 집계에 나타날 수 있습니다.
 - 개인정보/위험 코드 검사는 정규식과 AST 기반의 보조 검사로 완전한 검출을 보장하지 않습니다. 보수적으로 동적 실행·셸·역직렬화·난독화를 반려합니다. 운영자 코드 검토가 필수입니다. 서버와 CI는 커넥터 코드를 실행하지 않습니다.
 - `lib/security.js`의 D1 원자적 카운터로 IP·토큰·전체 호출 제한을 적용합니다. 기본 120회/분/IP, 동의 5회/시간/IP, 제출 3회/시간/IP·토큰, 다운로드 30회/분/IP·토큰. 전체 API 600회/분, 동의 100회/시간, 제출 20회/시간입니다. 429 및 Retry-After를 반환합니다. IPv6는 /64로 묶고 카운터 키의 IP는 일별 HMAC으로 저장합니다. 이는 앱 수준의 남용 제한이며 대규모 네트워크 공격에 대한 별도 방어를 대체하지 않습니다.
 - 약관·기록 정책을 바꾸면 `terms.json`과 `terms.html`의 버전을 함께 올려 배포합니다. 실제 운영자 연락 경로, 보유 기간, 국외 처리 고지 등은 실제 운영 방식에 맞춰 확정해야 합니다. 현재 문서는 구현된 동작을 설명하는 초기 운영 문안입니다.
-- 동의 ID·약관 버전·동의 시각·사용자 식별자·동의 및 철회 이력은 서비스 운영과 동의 증빙 목적이 유지되는 동안 보존하며 180일 자동 정리에서 제외합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 기록 시점에서 180일이 지난 뒤 정기 작업으로 제거합니다. 항목별 누적 다운로드 수는 유지합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.
-- `.github/workflows/operations.yml`은 30분마다 상태·비공개 통계 차단을 확인하고 서명된 정리 요청을 보냅니다. GitHub 스케줄은 지연될 수 있습니다. 인증은 기존 서명 Secret으로 목적을 구분한 HMAC을 사용하며 5분 유효 시간·일회성 nonce로 재실행을 막습니다. 정리 API는 임의 SQL이나 임의 보관 기간을 받지 않습니다.
+- 동의는 약관 변경 또는 연결 해제(철회) 전까지 유효하며 고정 만료일은 없습니다. 다만 개인정보 보관을 최소화하기 위해 철회 후 180일이 지난 동의와 최근 활동(last_used_at) 기준 180일 이상 미사용한 미철회 동의는 식별자·토큰 해시·관련 동의 이력 및 다운로드 상세 기록과 함께 삭제합니다. 최근 활동한 미철회 동의는 유지합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 각 기록 시점부터 180일이 지나면 삭제하고, 항목별 누적 다운로드 수는 유지합니다. 서버의 일일 정리 또는 쓰기 요청 시 정리로 처리하며 정리 간격은 최소 24시간입니다. 삭제된 동의로 다시 다운로드·제출하려면 새 동의가 필요합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.
+- `.github/workflows/operations.yml`은 health check 전용이며 정리 API를 호출하거나 정리용 Secret을 전달하지 않습니다. 데이터 정리는 Cloudflare 서버에서 처리합니다. 수동 운영 도구 `node scripts/operations.mjs --maintenance`와 서명된 `/api/admin/maintenance`는 호환 유지하며 같은 정리 함수와 24시간 간격을 적용합니다. 수동 호출은 기존 HMAC·5분 인증 시간·일회성 nonce가 필요합니다.
 
 ## 기술 참고 문서
 
 - [Cloudflare Pages D1 바인딩](https://developers.cloudflare.com/pages/functions/bindings/)
 - [D1 batch 트랜잭션](https://developers.cloudflare.com/d1/worker-api/d1-database/)
+- [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
 - [GitHub App installation token](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
 - [GitHub Actions 토큰 권한](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)
 - [MIT 라이선스](https://opensource.org/license/mit)

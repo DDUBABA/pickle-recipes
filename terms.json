@@ -1,5 +1,5 @@
 {
-  "termsVersion": "2026-11-17.4",
+  "termsVersion": "2026-11-17.5",
   "effectiveAt": "2026-11-17T00:00:00Z",
   "termsUrl": "/terms.html",
   "disclaimerUrl": "/terms.html#disclaimer",
@@ -24,9 +24,11 @@
     "itemId",
     "itemKind",
     "version",
-    "downloadedAt"
+    "downloadedAt",
+    "lastUsedAt",
+    "revokedAt"
   ],
-  "retention": "동의 ID·약관 버전·동의 시각·사용자 식별자·동의 및 철회 이력은 서비스 운영과 동의 증빙 목적이 유지되는 동안 보존하며 180일 자동 정리에서 제외합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 기록 시점에서 180일이 지난 뒤 정기 작업으로 제거합니다. 항목별 누적 다운로드 수는 유지합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.",
+  "retention": "동의는 약관 변경 또는 연결 해제(철회) 전까지 유효하며 고정 만료일은 없습니다. 다만 개인정보 보관을 최소화하기 위해 철회 후 180일이 지난 동의와 최근 활동(last_used_at) 기준 180일 이상 미사용한 미철회 동의는 식별자·토큰 해시·관련 동의 이력 및 다운로드 상세 기록과 함께 삭제합니다. 최근 활동한 미철회 동의는 유지합니다. 동의 기록의 IP·User-Agent와 개별 다운로드 상세 기록은 각 기록 시점부터 180일이 지나면 삭제하고, 항목별 누적 다운로드 수는 유지합니다. 서버의 일일 정리 또는 쓰기 요청 시 정리로 처리하며 정리 간격은 최소 24시간입니다. 삭제된 동의로 다시 다운로드·제출하려면 새 동의가 필요합니다. 백업의 이전 사본은 D1 복구 보관 기간 내에 남을 수 있으며 공개 PR 이력은 GitHub에 남습니다.",
   "autoUpload": {
     "includedInConsent": true,
     "defaultAllowed": true,
@@ -51,8 +53,9 @@
     "publicIdHeader": "X-Consent-Id",
     "versionHeader": "X-Terms-Version",
     "neverPublish": "consentToken",
-    "expiresAfterDays": 90,
-    "revokeUrl": "/api/consent/revoke"
+    "expiresAfterDays": null,
+    "revokeUrl": "/api/consent/revoke",
+    "validUntil": "약관 변경 또는 연결 해제(철회) 전까지 유효"
   },
   "affiliation": {
     "type": "independent-third-party-community",
@@ -64,7 +67,17 @@
   },
   "retentionPolicy": {
     "telemetryDays": 180,
-    "consentEvidence": "retained",
-    "lifetimeItemTotals": "retained"
-  }
+    "revokedConsentDays": 180,
+    "inactiveConsentDays": 180,
+    "activityField": "last_used_at",
+    "consentEvidence": "delete with revoked or inactive consent after 180 days",
+    "activeConsents": "retained",
+    "lifetimeItemTotals": "retained",
+    "cleanupIntervalHours": 24
+  },
+  "consentRequiredFor": [
+    "download",
+    "submit"
+  ],
+  "publicBrowsingAllowed": true
 }
