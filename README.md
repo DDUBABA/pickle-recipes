@@ -87,11 +87,16 @@ Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 p
 2. Repository permissions: **Contents: Read & write**, **Pull requests: Read & write**, Metadata: Read. 저장소는 `pickle-recipes` 하나만 설치 대상으로 선택합니다. 사용자 사이트 이용자에게 GitHub 로그인을 요구하지 않습니다.
 3. App ID, installation ID, Generate a private key로 받은 PEM을 위 Cloudflare 비밀값에 등록합니다. App은 짧은 수명의 installation token을 요청할 때 해당 저장소로 범위를 제한합니다.
 4. 저장소 Actions secrets에 `SUBMISSION_METADATA_SECRET`을 Cloudflare와 동일하게 등록합니다. 자동 배포를 사용하면 `CLOUDFLARE_API_TOKEN`(해당 계정 Pages 편집 및 D1 편집), `CLOUDFLARE_ACCOUNT_ID`도 등록합니다. 서버 코드에는 관리자 개인 GitHub 토큰을 넣지 않습니다.
-5. 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한하고, 버전 확정·배포에는 전용 GitHub App의 단기 토큰을 사용합니다. main 보호 규칙은 PR, 필수 검사 `validate`·`application-check`, 최신 main 반영과 검토 대화 해결을 요구합니다. 1인 운영에서는 필수 승인 인원을 0명으로 두고 코드 소유자·마지막 푸시·추가 승인 의무를 해제해 운영자가 자신의 PR도 검사 통과 후 직접 병합할 수 있게 합니다. 버전 자동화 봇의 직접 쓰기 예외는 별도로 제한합니다.
+5. 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한하고, 버전 확정·배포에는 전용 GitHub App의 단기 토큰을 사용합니다. main 보호 규칙은 PR, 필수 검사 `validate`·`application-check`, 최신 main 반영과 검토 대화 해결을 요구합니다. 일반 필수 승인 인원은 0명으로 두되 **코드 소유자 승인은 필수로 유지**합니다. `.github/CODEOWNERS`에서 `recipes/`를 운영자에게 지정하고 자동 생성 파일 `recipes/index.json`만 제외합니다. 전역 마지막 푸시·추가 승인 의무는 해제해 운영자가 사이트·GitHub 운영 코드 PR을 추가 승인 없이 직접 병합할 수 있게 합니다. 새 커밋이 올라오면 기존 승인을 취소하는 설정은 유지합니다. 버전 자동화 봇의 직접 쓰기 예외는 별도로 제한합니다.
 
 ## 접수와 버전 자동화
 
-운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`은 PR·필수 검사(`validate`, `application-check`)를 요구하며, 1인 운영을 위해 작성자 외 승인 리뷰를 필수로 두지 않습니다. 운영자는 자신의 변경과 외부 제출물 모두 검사 결과·개인정보·코드 내용을 확인한 뒤 직접 병합합니다. `.github/CODEOWNERS`는 검토 담당자를 안내하며 별도 승인 의무를 만들지 않습니다. 버전 확정 봇만 직접 쓰기 예외를 두고, `production`은 같은 봇만 업데이트할 수 있도록 별도 규칙을 적용합니다. 강제 푸시와 브랜치 삭제도 제한합니다. 봇 키를 교체하거나 접근을 철회할 때 Cloudflare와 Actions 두 저장 위치를 함께 관리하세요.
+운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`의 PR·필수 검사(`validate`, `application-check`)·최신 main 반영·검토 대화 해결은 모든 변경에 적용하며, 승인 리뷰는 변경 경로에 따라 구분합니다.
+
+- **사이트·GitHub 운영 변경**: 운영자가 자신의 PR을 검사 통과 후 추가 승인 리뷰 없이 병합합니다. 자동 생성 카탈로그 `recipes/index.json`도 여기에 포함됩니다.
+- **신규 레시피·커넥터와 기존 항목 수정**: `recipes/`의 공통 코드 변경은 `.github/CODEOWNERS`에 지정된 운영자 `jkc1832`의 승인 리뷰가 필요합니다. 새 커밋이 추가되면 재승인해야 합니다. 사이트 접수 API는 운영자 개인 토큰 대신 전용 GitHub App으로 PR을 작성하므로 운영자가 작성자와 별개로 승인할 수 있습니다. API는 PR 생성까지만 수행하며 자동 승인·병합하지 않습니다. 운영자 자신이 만든 항목도 사이트 접수 API를 이용합니다.
+
+버전 확정 봇만 직접 쓰기 예외를 두고, `production`은 같은 봇만 업데이트할 수 있도록 별도 규칙을 적용합니다. 강제 푸시와 브랜치 삭제도 제한합니다. 봇 키를 교체하거나 접근을 철회할 때 Cloudflare와 Actions 두 저장 위치를 함께 관리하세요. 코드 소유자 지정은 병합 대상 브랜치의 파일을 기준으로 하므로, 새 보호 설정을 적용하기 전에 이 `CODEOWNERS`를 먼저 main에 반영해야 합니다.
 
 Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 주소도 보호해야 합니다. 자동 프리뷰 생성 중지만으로는 기존 배포 주소가 차단되지 않습니다. API 코드도 현재 운영 origin만 허용합니다. `LOCAL_DEVELOPMENT=1`은 로컬 `.dev.vars`에서만 사용하며 운영 환경에는 등록하지 않습니다.
 
