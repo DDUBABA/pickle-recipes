@@ -12,6 +12,8 @@
     "deploy": "node scripts/build.mjs && wrangler pages deploy dist --project-name pickle-recipes",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
+    "catalog:sync": "node scripts/sync-catalog.mjs",
+    "pages:configure": "node scripts/configure-pages.mjs",
     "deploy:retention": "wrangler deploy -c wrangler.retention.jsonc"
   },
   "devDependencies": { "wrangler": "^4.0.0" }
