@@ -85,6 +85,14 @@ import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys,bridge
     originLink.target = "_blank";
     origin.append(originLink);
     content.append(origin);
+    // All modes require an explicit AI connection URL. Ordinary visitors get no
+    // credential form, submit handler or link that enables downloading.
+    const downloadValues = new URLSearchParams(location.search).getAll("download");
+    const downloadAllowed = downloadValues.length === 1 && downloadValues[0] === "1";
+    if (!downloadAllowed) {
+      setStatus("이 페이지에서는 연결 파일을 직접 받을 수 없습니다. 피클 AI에서 이 서비스의 연결을 시작해 주세요.");
+      return;
+    }
     if (preview) content.append(element("p", "테스트용 주소입니다. 피클에 계정을 저장할 때는 이 서비스의 전용 연결 주소를 사용해 주세요.", "notice"));
     if (site.mode === "api_token") content.append(element("p", "로그인을 위해 입력한 정보를 해당 서비스로 직접 보냅니다. 로그인에 성공하면 연결 파일을 내려받습니다.", "notice"));
     else content.append(element("p", "입력한 정보는 이 브라우저 안에서 파일로 만들어집니다.", "notice"));
@@ -119,7 +127,6 @@ import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys,bridge
     form.append(actions);
     content.append(form);
 
-    const downloadAllowed = !site.requireDownloadParam || new URLSearchParams(location.search).get("download") === "1";
     let active = null;
     let revision = 0;
     function clearInputs() {
@@ -136,15 +143,10 @@ import {validateSite,selectSite,sitePattern,isObject,assert,forbiddenKeys,bridge
       active = null;
       clearInputs();
       setBusy(false);
-      setStatus(downloadAllowed ? "" : "연결 파일을 받으려면 아래에서 파일 다운로드를 허용해 주세요.");
+      setStatus("");
     };
     reset.addEventListener("click", clearForm);
     clearForm();
-    if (!downloadAllowed) {
-      const enabledUrl = new URL(location.href);
-      enabledUrl.searchParams.set("download", "1");
-      content.append(link("파일 다운로드를 허용하고 시작하기", enabledUrl.href));
-    }
 
     form.addEventListener("submit", async event => {
       event.preventDefault();

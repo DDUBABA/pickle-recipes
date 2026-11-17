@@ -97,23 +97,23 @@ test('root directory lists every site with both addresses', async () => {
 });
 
 test('mapped host takes priority over an attacker-supplied site query', async () => {
-  const app = await boot('https://pickle-loginbridge--smartthings-pat.pages.dev/?site=knocktown-appapi');
+  const app = await boot('https://pickle-loginbridge--smartthings-pat.pages.dev/?site=knocktown-appapi&download=1');
   assert.ok(app.input('token'));
   assert.equal(app.input('username'), undefined);
 });
 
 test('canonical host loads its site without host-map assistance and enforces download gate',async()=>{
-  const app=await boot('https://loginbridge--smartthings-pat.pickle-recipes.com/?site=knocktown-appapi');
+  const app=await boot('https://loginbridge--smartthings-pat.pickle-recipes.com/?site=knocktown-appapi&download=1');
   assert.ok(app.input('token'));assert.equal(app.input('username'),undefined);
   const gated=await boot('https://loginbridge--knocktown-appapi.pickle-recipes.com/');
-  assert.equal(gated.elements.find(e=>e.type==='submit').disabled,true);
-  await gated.submit();assert.equal(gated.requests.length,2);assert.equal(gated.downloads.length,0);
+  assert.equal(gated.elements.some(e=>e.tag==='form'),false);
+  assert.equal(gated.requests.length,2);assert.equal(gated.downloads.length,0);
   const enabled=await boot('https://loginbridge--knocktown-appapi.pickle-recipes.com/?download=1');
   assert.ok(enabled.input('username'));
 });
 
 test('local config download preserves escaped text and leading zeros, and releases secrets', async () => {
-  const app = await boot('http://localhost:8000/?site=dongtan-lakecity-visit-web');
+  const app = await boot('http://localhost:8000/?site=dongtan-lakecity-visit-web&download=1');
   const password = 'fake-"\\\n</script><img src=x>';
   app.fill({dong: '001', ho: '0203', password});
   await app.submit();
@@ -129,7 +129,7 @@ test('local config download preserves escaped text and leading zeros, and releas
 });
 
 test('token conversion uses masked accessible input and never sends the token', async () => {
-  const app = await boot('https://preview.example.org/?site=smartthings-pat');
+  const app = await boot('https://preview.example.org/?site=smartthings-pat&download=1');
   assert.equal(app.input('token').type, 'password');
   assert.equal(app.input('token').autocomplete, 'current-password');
   assert.ok(app.elements.some(element => element.tag === 'label' && element.htmlFor === app.input('token').id));
@@ -141,12 +141,24 @@ test('token conversion uses masked accessible input and never sends the token', 
   app.assertNoRendered('fake-pat');
 });
 
-test('download gate blocks both button and submit handler before authentication', async () => {
-  const app = await boot('https://pickle-loginbridge--knocktown-appapi.pages.dev/');
-  assert.equal(app.elements.find(element => element.type === 'submit').disabled, true);
-  await app.submit();
-  assert.equal(app.requests.length, 2);
-  assert.equal(app.downloads.length, 0);
+for(const config of Object.values(configurations))test(`${config.mode} blocks ordinary visits on canonical, legacy and preview hosts`,async()=>{
+  for(const address of [`https://loginbridge--${config.siteId}.pickle-recipes.com/`,`https://pickle-loginbridge--${config.siteId}.pages.dev/`,`https://pickle-recipes.com/bridge/?site=${config.siteId}`]){
+    for(const query of ['', 'download=0','download=','download=true','download=1&download=0','download=1&download=1']){
+      const app=await boot(address+(address.includes('?')?'&':'?')+query);
+      assert.equal(app.elements.some(e=>['input','form','button'].includes(e.tag)),false);
+      assert.equal(app.elements.some(e=>e.tag==='a'&&new URL(e.href).searchParams.has('download')),false);
+      assert.match(app.ids.status.textContent,/피클 AI/);
+      assert.equal(app.requests.length,2);assert.equal(app.downloads.length,0);
+    }
+  }
+});
+
+test('a newly created bridge inherits the same gate without any engine changes',async()=>{
+  const config={...structuredClone(configurations['smartthings-pat']),siteId:'future-example',bridgeUrl:'https://loginbridge--future-example.pickle-recipes.com/?download=1'};
+  const ordinary=await boot('https://loginbridge--future-example.pickle-recipes.com/',{config});
+  assert.equal(ordinary.elements.some(e=>e.tag==='form'),false);assert.equal(ordinary.downloads.length,0);
+  const agent=await boot(config.bridgeUrl,{config});agent.fill({token:'fake-future-pat'});await agent.submit();
+  assert.equal(agent.downloads.length,1);agent.assertClean();
 });
 
 test('API POST uses the declared body and exports only selected response fields', async () => {
@@ -202,7 +214,7 @@ test('duplicate submits and late results after reset cannot trigger downloads', 
 });
 
 test('page departure and restored pages clear masked input', async () => {
-  const app = await boot('http://localhost/?site=smartthings-pat');
+  const app = await boot('http://localhost/?site=smartthings-pat&download=1');
   app.fill({token: 'fake-pat'});
   app.pagehide();
   app.assertClean();
@@ -219,12 +231,14 @@ for (const [name, change] of [
   ['path traversal filename', config => { config.filename = '../secret.json'; }],
   ['unknown executable property', config => { config.script = 'alert(1)'; }],
   ['duplicate inputs', config => { config.fields.push({...config.fields[0]}); }],
-  ['response reference in local mode', config => { config.output.token = {$response: ['token']}; }]
+  ['response reference in local mode', config => { config.output.token = {$response: ['token']}; }],
+  ['disabled download gate', config => { config.requireDownloadParam = false; }],
+  ['omitted download gate', config => { delete config.requireDownloadParam; }]
 ]) {
   test(`invalid configuration rejects ${name}`, async () => {
     const config = structuredClone(configurations['smartthings-pat']);
     change(config);
-    const app = await boot('http://localhost/?site=smartthings-pat', {config});
+    const app = await boot('http://localhost/?site=smartthings-pat&download=1', {config});
     assert.equal(app.elements.filter(element => element.tag === 'form').length, 0);
     assert.equal(app.ids.status.className, 'error');
   });
@@ -238,7 +252,7 @@ test('unsafe API endpoint is rejected before rendering credential fields', async
 });
 
 test('unsafe transport and traversal site IDs are rejected', async () => {
-  for (const address of ['http://192.168.1.2/?site=smartthings-pat', 'file:///index.html', 'https://preview.example.org/?site=../../secret']) {
+  for (const address of ['http://192.168.1.2/?site=smartthings-pat&download=1', 'file:///index.html', 'https://preview.example.org/?site=../../secret']) {
     const app = await boot(address);
     assert.equal(app.input('token'), undefined);
     assert.equal(app.ids.status.className, 'error');

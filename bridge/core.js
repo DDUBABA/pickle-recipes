@@ -71,7 +71,7 @@
 
   export function validateSite(site, expectedId) {
     checkKeys(site, ["$schema", "siteId", "name", "bridgeUrl", "originLoginUrl", "description", "mode", "filename", "fields", "output", "api", "requireDownloadParam"],
-      ["siteId", "name", "bridgeUrl", "originLoginUrl", "description", "mode", "filename", "fields", "output"]);
+      ["siteId", "name", "bridgeUrl", "originLoginUrl", "description", "mode", "filename", "fields", "output", "requireDownloadParam"]);
     assert(site.siteId === expectedId && sitePattern.test(site.siteId) && site.siteId.length <= 43);
     if (Object.hasOwn(site, "$schema")) assert(site.$schema === "./_schema.json");
     assert(isText(site.name, 100) && isText(site.description));
@@ -79,7 +79,7 @@
     webUrl(site.originLoginUrl);
     assert(modes.includes(site.mode));
     assert(typeof site.filename === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}\.json$/.test(site.filename));
-    assert(!Object.hasOwn(site, "requireDownloadParam") || typeof site.requireDownloadParam === "boolean");
+    assert(site.requireDownloadParam === true);
     assert(Array.isArray(site.fields) && site.fields.length > 0 && site.fields.length <= 20);
     const fieldNames = new Set();
     for (const field of site.fields) {
