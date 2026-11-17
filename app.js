@@ -6,7 +6,7 @@ const el=(tag,text,className)=>{const node=document.createElement(tag); if(text!
 let toastTimer, searchTimer;
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,5000);}
 function headers(){return state.consent?{'Authorization':`Bearer ${state.consent.consentToken}`,'X-Consent-Id':state.consent.consentId,'X-Terms-Version':state.consent.termsVersion}:{};}
-function clearConnection(){state.consent=null;state.request++;localStorage.removeItem(STORE);$('#disconnect').hidden=true;$('#connect-top').textContent='피클과 시작하기 ↗';if($('#detail-dialog').open)$('#detail-dialog').close();renderEmpty('연결이 필요해요.','약관과 기록 수집 안내를 확인한 후 시작하세요.',true);}
+function clearConnection(){state.consent=null;state.request++;localStorage.removeItem(STORE);$('#disconnect').hidden=true;$('#connect-top').textContent='이용 안내 ↗';if($('#detail-dialog').open)$('#detail-dialog').close();renderEmpty('이 커뮤니티 이용 동의가 필요해요.','약관과 기록 수집 안내를 확인한 후 시작하세요.',true);}
 async function api(path,options={}){
   const response=await fetch(path,{cache:'no-store',...options,headers:{...headers(),...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});
   let result;try{result=await response.json();}catch{throw new Error('서버 응답을 읽지 못했습니다. 연결 상태를 확인해 주세요.');}
@@ -21,12 +21,12 @@ async function ensureConsent(){
   await api('/api/consent/verify');return true;
 }
 async function openConsent(reason){
-  try{await latestTerms();$('#consent-error').textContent='';$('#terms-version').textContent=`약관 버전 ${state.terms.termsVersion}`;$('#consent-reason').textContent=reason||'별도 계정 없이 연결합니다. 동의와 다운로드 기록은 서버에 저장됩니다.';$('#agree').checked=false;$('#auto-upload').checked=false;if(!$('#consent-dialog').open)$('#consent-dialog').showModal();}
+  try{await latestTerms();$('#consent-error').textContent='';$('#terms-version').textContent=`약관 버전 ${state.terms.termsVersion}`;$('#consent-reason').textContent=reason||'별도 계정 없이 이 커뮤니티를 이용합니다. 동의와 다운로드 기록은 커뮤니티 운영 서버에 저장됩니다.';$('#agree').checked=false;$('#auto-upload').checked=false;if(!$('#consent-dialog').open)$('#consent-dialog').showModal();}
   catch(error){toast(error.message);}
 }
 function renderEmpty(title,description,connect=false){
   const box=el('div',undefined,'empty-state');box.append(el('div','↗','empty-icon'),el('h3',title),el('p',description));
-  if(connect){const button=el('button','안내 확인하고 시작하기','primary');button.onclick=()=>openConsent();box.append(button);}else{const link=el('a','피클 표준 가이드 보기 ↗','outline');link.href='/guide.md';box.append(link);}
+  if(connect){const button=el('button','안내 확인하고 시작하기','primary');button.onclick=()=>openConsent();box.append(button);}else{const link=el('a','커뮤니티 가이드 보기 ↗','outline');link.href='/guide.md';box.append(link);}
   $('#catalog').replaceChildren(box);$('#more').hidden=true;
 }
 function renderCards(items){
@@ -85,12 +85,12 @@ $('#consent-form').addEventListener('submit',async event=>{
     const result=await api('/api/consent',{method:'POST',headers:{},body:JSON.stringify({termsVersion:shownVersion,agreed:$('#agree').checked,userIdentifier:$('#user-identifier').value.trim(),displayName:$('#display-name').value.trim(),clientType:'web',autoUploadAllowed:$('#auto-upload').checked})});
     state.consent={consentId:result.consentId,consentToken:result.consentToken,termsVersion:result.termsVersion,agreedAt:result.agreedAt,autoUploadAllowed:result.autoUploadAllowed};
     try{localStorage.setItem(STORE,JSON.stringify(state.consent));}catch{toast('브라우저 저장이 제한되어 이번 방문에서만 동의가 유지됩니다.');}
-    $('#consent-dialog').close();$('#disconnect').hidden=false;$('#connect-top').textContent='연결 안내 ↗';await search({verify:false});
+    $('#consent-dialog').close();$('#disconnect').hidden=false;$('#connect-top').textContent='이용 동의 안내 ↗';await search({verify:false});
   }catch(error){$('#consent-error').textContent=error.message;}finally{button.disabled=false;}
 });
 $('#connect-top').onclick=()=>openConsent();$('#start-search').onclick=()=>openConsent();
 document.querySelectorAll('[data-close]').forEach(button=>button.onclick=()=>document.getElementById(button.dataset.close).close());
-$('#disconnect').onclick=()=>{clearConnection();toast('로컬 연결 정보를 지웠습니다. 기존 서버 기록은 보존됩니다.');};
+$('#disconnect').onclick=()=>{clearConnection();toast('이 기기의 커뮤니티 이용 동의 정보를 지웠습니다. 기존 서버 기록은 보존됩니다.');};
 $('#search-form').onsubmit=event=>{event.preventDefault();clearTimeout(searchTimer);state.limit=30;search();};
 $('#search').addEventListener('input',()=>{clearTimeout(searchTimer);if(state.consent)searchTimer=setTimeout(()=>{state.limit=30;search();},300);});
 document.querySelectorAll('[data-kind]').forEach(button=>button.onclick=()=>{state.kind=button.dataset.kind;state.limit=30;document.querySelectorAll('[data-kind]').forEach(tab=>{tab.classList.toggle('selected',tab===button);tab.setAttribute('aria-pressed',String(tab===button));});search();});
@@ -105,7 +105,7 @@ async function init(){
   try{
     const response=await fetch('/recipes/index.json',{cache:'no-store'});if(!response.ok)throw new Error('카탈로그 정보를 불러오지 못했습니다.');state.catalog=await response.json();
     for(const [selector,key]of [['#category','category'],['#auth','authType']])for(const value of [...new Set(state.catalog.items.filter(item=>item.status!=='blocked').map(item=>item[key]))].sort()){const option=el('option',value==='none'?'인증 불필요':value);option.value=value;$(selector).append(option);}
-    if(state.consent){$('#disconnect').hidden=false;$('#connect-top').textContent='연결 안내 ↗';await search();}
+    if(state.consent){$('#disconnect').hidden=false;$('#connect-top').textContent='이용 동의 안내 ↗';await search();}
   }catch(error){toast(error.message);}
 }
 init();

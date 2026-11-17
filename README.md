@@ -1,6 +1,8 @@
 # 피클 레시피 · Pickle Recipes
 
-피클 커넥터와 레시피를 GitHub 계정 없이 검색·다운로드·공유하는 공개 허브입니다. **Cloudflare Pages + Pages Functions + D1**으로 동작하며, 피클 로그인 브릿지와 별개의 프로젝트입니다.
+**피클 제작사와 무관한 비공식 서드파티 커뮤니티입니다.** 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물은 제작사의 검토·보증을 의미하지 않습니다. 운영자는 [jkc1832](https://github.com/jkc1832)입니다.
+
+사용자가 만든 피클 커넥터와 레시피를 GitHub 계정 없이 검색·다운로드·공유하는 자료 허브입니다. 가이드·약관·API·템플릿·저장 경로는 이 커뮤니티 자체 규칙이며 제작사의 공식 규격이나 SDK가 아닙니다. 각 기능의 사용 가능 여부는 이용하는 AI 환경에 따라 달라집니다. **Cloudflare Pages + Pages Functions + D1**으로 동작하며, 피클 로그인 브릿지와 별개의 프로젝트입니다.
 
 ## 구현 범위
 
@@ -125,7 +127,7 @@ Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 p
 - 약관·기록 정책을 바꾸면 `terms.json`과 `terms.html`의 버전을 함께 올려 배포합니다. 실제 운영자 연락 경로, 보유 기간, 국외 처리 고지 등은 실제 운영 방식에 맞춰 확정해야 합니다. 현재 문서는 구현된 동작을 설명하는 초기 운영 문안입니다.
 - 기록 삭제는 관리자만 수행하며 `download_logs`의 외래키를 고려해 해당 로그를 먼저 삭제·비식별화하고 동의를 정리합니다. 누적 통계는 개인 식별자와 분리되어 있습니다. 실제 보유 기간을 확정한 후 보존·삭제 작업을 운영 일정에 반영하세요.
 
-## 공식 참고
+## 기술 참고 문서
 
 - [Cloudflare Pages D1 바인딩](https://developers.cloudflare.com/pages/functions/bindings/)
 - [D1 batch 트랜잭션](https://developers.cloudflare.com/d1/worker-api/d1-database/)

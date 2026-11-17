@@ -1,5 +1,5 @@
 {
-  "termsVersion": "2026-11-17.1",
+  "termsVersion": "2026-11-17.2",
   "effectiveAt": "2026-11-17T00:00:00Z",
   "termsUrl": "/terms.html",
   "disclaimerUrl": "/terms.html#disclaimer",
@@ -8,9 +8,49 @@
   "licenseUrl": "/LICENSE",
   "consentRequired": true,
   "requiresButtonCard": true,
-  "collection": ["userIdentifier", "displayName (optional)", "clientType", "ipAddress", "userAgent", "agreedAt", "termsVersion", "itemId", "itemKind", "version", "downloadedAt"],
+  "collection": [
+    "userIdentifier",
+    "displayName (optional)",
+    "clientType",
+    "ipAddress",
+    "userAgent",
+    "agreedAt",
+    "termsVersion",
+    "itemId",
+    "itemKind",
+    "version",
+    "downloadedAt"
+  ],
   "retention": "동의 및 다운로드 기록은 서비스 운영과 동의 증빙 목적이 유지되는 동안 보관합니다. 목적이 소멸하거나 유효한 삭제 요청을 처리하면 삭제 또는 비식별화합니다. 공개 기여 이력은 GitHub에 남을 수 있습니다.",
-  "autoUpload": {"optional": true, "requiresExplicitConsent": true, "conditions": ["표준 규격 검증", "개인정보·민감정보 제거 검증", "MIT 공개 배포", "PR 검토 후 병합"]},
-  "publicSubmissionFields": ["submittedBy", "consentId", "termsVersion", "baseVersion", "summary"],
-  "credential": {"header": "Authorization: Bearer <consentToken>", "publicIdHeader": "X-Consent-Id", "versionHeader": "X-Terms-Version", "neverPublish": "consentToken"}
+  "autoUpload": {
+    "optional": true,
+    "requiresExplicitConsent": true,
+    "conditions": [
+      "이 사이트의 제출 규격 검증",
+      "개인정보·민감정보 제거 검증",
+      "MIT 공개 배포",
+      "PR 검토 후 병합"
+    ]
+  },
+  "publicSubmissionFields": [
+    "submittedBy",
+    "consentId",
+    "termsVersion",
+    "baseVersion",
+    "summary"
+  ],
+  "credential": {
+    "header": "Authorization: Bearer <consentToken>",
+    "publicIdHeader": "X-Consent-Id",
+    "versionHeader": "X-Terms-Version",
+    "neverPublish": "consentToken"
+  },
+  "affiliation": {
+    "type": "independent-third-party-community",
+    "isOfficial": false,
+    "operator": "jkc1832",
+    "operatorUrl": "https://github.com/jkc1832",
+    "disclosure": "피클 제작사와 무관하게 운영되는 비공식 서드파티 커뮤니티입니다. 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물에 대한 제작사의 검토·보증을 의미하지 않습니다.",
+    "scope": "이 사이트의 약관·가이드·제출 규격은 커뮤니티 자체 규칙이며 피클 제작사의 약관·공식 규격이 아닙니다."
+  }
 }

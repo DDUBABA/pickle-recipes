@@ -17,7 +17,7 @@ def run_service(profile):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Pickle connector template")
+    parser = argparse.ArgumentParser(description="Unofficial Pickle Recipes community connector template")
     parser.add_argument("--json", action="store_true", help="JSON standard output")
     args = parser.parse_args()
     try:

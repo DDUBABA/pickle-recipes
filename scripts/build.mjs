@@ -11,7 +11,7 @@ export async function build(root=process.cwd(),{indexOnly=false}={}) {
   const origin=new URL(process.env.SITE_URL || config.siteUrl).origin;
   const published=all.filter(({meta,files})=>ledger.items[meta.id]?.hash===contentHash(meta,files)&&meta.releases.length>0&&meta.version===ledger.items[meta.id].version);
   const items=published.map(({meta})=>meta);
-  const catalog={schemaVersion:1,termsVersion:terms.termsVersion,guideUrl:'/guide.md',templateUrl:'/template/',termsUrl:'/terms.json',api:{consent:'/api/consent',verifyConsent:'/api/consent/verify',search:'/api/search',item:'/api/items/{id}',download:'/api/download',submit:'/api/submit',stats:'/api/stats'},items};
+  const catalog={schemaVersion:1,affiliation:terms.affiliation,termsVersion:terms.termsVersion,guideUrl:'/guide.md',templateUrl:'/template/',termsUrl:'/terms.json',api:{consent:'/api/consent',verifyConsent:'/api/consent/verify',search:'/api/search',item:'/api/items/{id}',download:'/api/download',submit:'/api/submit',stats:'/api/stats'},items};
   const xmlEscape=value=>value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;');
   const sitemap=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/','/terms.html','/template/','/guide.md'].map(route=>`<url><loc>${xmlEscape(origin+route)}</loc></url>`).join('')}</urlset>\n`;
   await mkdir(path.join(root,'recipes'),{recursive:true});
