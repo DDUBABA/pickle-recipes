@@ -91,10 +91,19 @@
       "kind": "bridge",
       "type": "bridge",
       "status": "active",
-      "version": "1.0",
+      "version": "1.1",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T13:29:11Z",
+      "updatedAt": "2026-11-17T15:16:29Z",
       "releases": [
+        {
+          "version": "1.1",
+          "baseVersion": "1.0",
+          "date": "2026-11-17T15:16:29Z",
+          "type": "patch",
+          "summary": "Publish the three canonical login bridge URLs",
+          "submittedBy": "DDUBABA",
+          "prNumber": 12
+        },
         {
           "version": "1.0",
           "baseVersion": null,
@@ -118,7 +127,7 @@
       "parentId": null,
       "relationType": null,
       "author": "community",
-      "bridgeUrl": "https://pickle-loginbridge--dongtan-lakecity-visit-web.pages.dev/",
+      "bridgeUrl": "https://loginbridge--dongtan-lakecity-visit-web.pickle-recipes.com/",
       "configUrl": "/bridge/sites/dongtan-lakecity-visit-web.json",
       "mode": "config_download"
     },
@@ -130,10 +139,19 @@
       "kind": "bridge",
       "type": "bridge",
       "status": "active",
-      "version": "1.0",
+      "version": "1.1",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T13:29:11Z",
+      "updatedAt": "2026-11-17T15:16:29Z",
       "releases": [
+        {
+          "version": "1.1",
+          "baseVersion": "1.0",
+          "date": "2026-11-17T15:16:29Z",
+          "type": "patch",
+          "summary": "Publish the three canonical login bridge URLs",
+          "submittedBy": "DDUBABA",
+          "prNumber": 12
+        },
         {
           "version": "1.0",
           "baseVersion": null,
@@ -157,7 +175,7 @@
       "parentId": null,
       "relationType": null,
       "author": "community",
-      "bridgeUrl": "https://pickle-loginbridge--knocktown-appapi.pages.dev/?download=1",
+      "bridgeUrl": "https://loginbridge--knocktown-appapi.pickle-recipes.com/?download=1",
       "configUrl": "/bridge/sites/knocktown-appapi.json",
       "mode": "api_token"
     },
@@ -169,10 +187,19 @@
       "kind": "bridge",
       "type": "bridge",
       "status": "active",
-      "version": "1.0",
+      "version": "1.1",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T13:29:11Z",
+      "updatedAt": "2026-11-17T15:16:29Z",
       "releases": [
+        {
+          "version": "1.1",
+          "baseVersion": "1.0",
+          "date": "2026-11-17T15:16:29Z",
+          "type": "patch",
+          "summary": "Publish the three canonical login bridge URLs",
+          "submittedBy": "DDUBABA",
+          "prNumber": 12
+        },
         {
           "version": "1.0",
           "baseVersion": null,
@@ -196,7 +223,7 @@
       "parentId": null,
       "relationType": null,
       "author": "community",
-      "bridgeUrl": "https://pickle-loginbridge--smartthings-pat.pages.dev/",
+      "bridgeUrl": "https://loginbridge--smartthings-pat.pickle-recipes.com/",
       "configUrl": "/bridge/sites/smartthings-pat.json",
       "mode": "token_convert"
     }

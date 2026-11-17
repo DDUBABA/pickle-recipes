@@ -10,7 +10,8 @@
     8,
     9,
     10,
-    11
+    11,
+    12
   ],
   "items": {
     "smartthings-device-control": {
@@ -33,8 +34,17 @@
   },
   "bridges": {
     "dongtan-lakecity-visit-web": {
-      "version": "1.0",
+      "version": "1.1",
       "releases": [
+        {
+          "version": "1.1",
+          "baseVersion": "1.0",
+          "date": "2026-11-17T15:16:29Z",
+          "type": "patch",
+          "summary": "Publish the three canonical login bridge URLs",
+          "submittedBy": "DDUBABA",
+          "prNumber": 12
+        },
         {
           "version": "1.0",
           "baseVersion": null,
@@ -45,13 +55,22 @@
           "prNumber": 7
         }
       ],
-      "hash": "99b5dc74b04fb45945313e1a39c08f84818eb3a99a02622475973d72fe9d7fe2",
+      "hash": "97616d8f5e6b108a06e9750e7d335cc0951ab642562b68ca5c9b3be6fd5cb4ee",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T13:29:11Z"
+      "updatedAt": "2026-11-17T15:16:29Z"
     },
     "knocktown-appapi": {
-      "version": "1.0",
+      "version": "1.1",
       "releases": [
+        {
+          "version": "1.1",
+          "baseVersion": "1.0",
+          "date": "2026-11-17T15:16:29Z",
+          "type": "patch",
+          "summary": "Publish the three canonical login bridge URLs",
+          "submittedBy": "DDUBABA",
+          "prNumber": 12
+        },
         {
           "version": "1.0",
           "baseVersion": null,
@@ -62,13 +81,22 @@
           "prNumber": 7
         }
       ],
-      "hash": "236d93f01ce14ae022a9fc0e580738b84020206019ce2acbe0b85f334d6c41c7",
+      "hash": "e25599f5bc71de4291ab2d379d6685653f23caa15de94e5c03692d36ba49da08",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T13:29:11Z"
+      "updatedAt": "2026-11-17T15:16:29Z"
     },
     "smartthings-pat": {
-      "version": "1.0",
+      "version": "1.1",
       "releases": [
+        {
+          "version": "1.1",
+          "baseVersion": "1.0",
+          "date": "2026-11-17T15:16:29Z",
+          "type": "patch",
+          "summary": "Publish the three canonical login bridge URLs",
+          "submittedBy": "DDUBABA",
+          "prNumber": 12
+        },
         {
           "version": "1.0",
           "baseVersion": null,
@@ -79,9 +107,9 @@
           "prNumber": 7
         }
       ],
-      "hash": "3fd6ed38fb4903c93742ccd7b246c78ac004ea2fd1bdb8d3f417a0a3eaa65f2a",
+      "hash": "4b1037543fcbf4471a772378958a05d06ea90d0ada02d982b2402c81a0a33cae",
       "createdAt": "2026-11-17T13:29:11Z",
-      "updatedAt": "2026-11-17T13:29:11Z"
+      "updatedAt": "2026-11-17T15:16:29Z"
     }
   }
 }
