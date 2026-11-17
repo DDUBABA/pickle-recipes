@@ -19,7 +19,7 @@ import {onRequestGet as detail} from '../functions/api/items/[id].js';
 import {D1,call,request,payload,credentials} from './helpers.mjs';
 const sites=await readBridges();const site=sites.find(s=>s.siteId==='smartthings-pat');
 const input={type:'bridge',changeType:'new',siteId:site.siteId,baseVersion:null,submittedBy:'tester',summary:'공통 연결 설정',files:{[`sites/${site.siteId}.json`]:JSON.stringify(site)}};
-test('All imported sites pass strict schema and privacy validation',()=>{assert.equal(sites.length,3);for(const s of sites)assert.deepEqual(validateBridge(s),[]);});
+test('All imported sites pass strict schema and privacy validation',()=>{assert.ok(sites.length>=3);for(const s of sites)assert.deepEqual(validateBridge(s),[]);});
 for(const url of ['http://api.example.com/','https://localhost/','https://127.0.0.1/','https://10.1.1.1/','https://169.254.169.254/','https://[::1]/','https://[::ffff:127.0.0.1]/','https://2130706433/','https://0x7f000001/','https://0177.0.0.1/','https://api.local/','https://user:pass@api.example.com/','https://api.example.com/?token=x','https://api.example.com/#x','https://api.example.com:444/','https://api.example.com./','javascript:alert(1)','data:text/html,x'])test(`Reject unsafe API URL ${url}`,()=>assert.throws(()=>publicApiUrl(url)));
 test('Only one declarative JSON file is accepted, with no code/PII/secrets',()=>{
   assert.deepEqual(bridgeSubmission(input).errors,[]);
@@ -48,7 +48,8 @@ test('Bridge router only fetches published assets without forwarding secrets or 
   assert.equal((await routeBridge(new Request('https://smartthings-pat.login.pickle-recipes.com/',{method:'POST',body:'secret'}),fake)).status,405);
 });
 test('Search and item APIs support bridge while preserving kind compatibility',async()=>{
-  const item=bridgeItem(site);catalog.items.push(item);bundles[item.id]={[`sites/${item.id}.json`]:JSON.stringify(site)};
+  const fixture={...site,siteId:'search-test-bridge',bridgeUrl:'https://pickle-loginbridge--search-test-bridge.pages.dev/'};
+  const item=bridgeItem(fixture);catalog.items.push(item);bundles[item.id]={[`sites/${item.id}.json`]:JSON.stringify(fixture)};
   try{
     assert.equal(searchItems([item],new URLSearchParams('type=bridge')).total,1);
     assert.equal(searchItems([item],new URLSearchParams('kind=bridge')).total,1);
@@ -83,9 +84,9 @@ test('Build publishes only reviewed bridge hashes and generates hosts and restri
     assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,0);
     await assert.rejects(readFile(path.join(root,`dist/bridge/sites/${site.siteId}.json`)));
     const bridges=Object.fromEntries(sites.map(s=>[s.siteId,{version:'1.0',hash:bridgeHash(s)}]));await writeFile(path.join(root,'.github/release-state.json'),JSON.stringify({items:{},bridges,processedPrs:[]}));await build(root);
-    assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,3);
+    assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,sites.length);
     const hosts=JSON.parse(await readFile(path.join(root,'dist/hosts.json'),'utf8'));assert.equal(hosts['smartthings-pat.login.pickle-recipes.com'],site.siteId);assert.equal(hosts['pickle-loginbridge--smartthings-pat.pages.dev'],site.siteId);
     const headers=await readFile(path.join(root,'dist/_headers'),'utf8');assert.match(headers,/! Content-Security-Policy/);assert.match(headers,/connect-src 'self' https:\/\/api.homeknocktown.co.kr/);
-    await writeFile(path.join(root,`bridge/sites/${site.siteId}.json`),JSON.stringify({...site,name:'Unreviewed'}));await build(root);assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,2);
+    await writeFile(path.join(root,`bridge/sites/${site.siteId}.json`),JSON.stringify({...site,name:'Unreviewed'}));await build(root);assert.equal(JSON.parse(await readFile(path.join(root,'dist/bridge/index.json'),'utf8')).items.length,sites.length-1);
   }finally{await rm(root,{recursive:true,force:true});}
 });
