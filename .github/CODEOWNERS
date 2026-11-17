@@ -1,6 +1,7 @@
 # Recipe and connector changes require the operator's approval before merging.
 # Main requires code-owner reviews even when the general approval count is zero.
 /recipes/ @DDUBABA
+/bridge/sites/ @DDUBABA
 
 # The generated catalog is site infrastructure, not a submitted recipe bundle.
 # This later ownerless rule excludes only this exact file from code-owner review.

@@ -220,3 +220,7 @@ Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 
 - [GitHub App installation token](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
 - [GitHub Actions 토큰 권한](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)
 - [MIT 라이선스](https://opensource.org/license/mit)
+
+## 로그인 브릿지
+
+[브릿지 목록](https://pickle-recipes.pages.dev/bridge/)과 `/bridge/index.json`에서 공통 로그인 설정을 찾습니다. 기존 `DDUBABA/pickle-loginbridge` 엔진과 3개 사이트 설정을 통합했으며 비밀값은 브라우저에서만 처리합니다. API 제출은 `type: "bridge"`, `files: {"sites/<siteId>.json": "JSON 문자열"}` 형식의 단일 JSON만 허용합니다. 세부 규격과 호스트 호환성은 [가이드](guide.md#9-로그인-브릿지-생성공개-제출), 운영 연결은 [브릿지 배포 문서](docs/bridge-deployment.md)를 참고하세요.
