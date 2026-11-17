@@ -9,9 +9,9 @@ function headers(){return state.consent?{'Authorization':`Bearer ${state.consent
 function connectionUI(){$('#disconnect').hidden=!state.consent;$('#connect-top').textContent='이용 동의 안내 ↗';}
 function clearConnection(){state.consent=null;try{localStorage.removeItem(STORE);}catch{}connectionUI();}
 async function api(path,options={}){
-  const response=await fetch(path,{cache:'no-store',...options,headers:{...(path.startsWith('/api/consent/verify')||options.method==='POST'?headers():{}),...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});
+  const response=await fetch(path,{cache:'no-store',...options,headers:{...(path!=='/api/feedback'&&(path.startsWith('/api/consent/verify')||options.method==='POST')?headers():{}),...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});
   let result;try{result=await response.json();}catch{throw new Error('서버 응답을 읽지 못했습니다. 연결 상태를 확인해 주세요.');}
-  if(!response.ok)throw Object.assign(new Error(result.message||'요청을 완료하지 못했습니다.'),{requiresConsent:result.requiresConsent||result.requiresReconsent});
+  if(!response.ok)throw Object.assign(new Error(result.message||'요청을 완료하지 못했습니다.'),{requiresConsent:result.requiresConsent||result.requiresReconsent,status:response.status,retryAfter:Number(response.headers?.get('Retry-After')||result.retryAfter)||0});
   return result;
 }
 async function latestTerms(){const response=await fetch('/terms.json',{cache:'no-store'});if(!response.ok)throw new Error('최신 약관을 불러오지 못했습니다.');state.terms=await response.json();return state.terms;}
@@ -69,7 +69,7 @@ async function showDetail(id){
     if(item.requires.length){content.append(el('h3','필요한 커넥터'));const list=el('div',undefined,'tags');for(const dependency of item.requires){const button=el('button',dependency,'outline');button.onclick=()=>showDetail(dependency);list.append(button);}content.append(list);}
     content.append(el('h3','버전별 릴리즈 노트'));const timeline=el('div',undefined,'timeline');
     if(!item.releases.length)timeline.append(el('p','아직 공개된 릴리즈 이력이 없습니다.','muted'));
-    for(const release of item.releases){const row=el('article',undefined,'release');row.append(el('strong',`v${release.version}${release.baseVersion?` ← v${release.baseVersion}`:''} · ${release.submittedBy}`));if(release.prNumber){const link=el('a',` · PR #${release.prNumber}`);link.href=`https://github.com/jkc1832/pickle-recipes/pull/${release.prNumber}`;link.target='_blank';link.rel='noopener';row.append(link);}row.append(el('p',`${new Date(release.date).toLocaleDateString('ko-KR')} · ${release.summary}`));timeline.append(row);}
+    for(const release of item.releases){const row=el('article',undefined,'release');row.append(el('strong',`v${release.version}${release.baseVersion?` ← v${release.baseVersion}`:''} · ${release.submittedBy}`));if(release.prNumber){const link=el('a',` · PR #${release.prNumber}`);link.href=`https://github.com/DDUBABA/pickle-recipes/pull/${release.prNumber}`;link.target='_blank';link.rel='noopener';row.append(link);}row.append(el('p',`${new Date(release.date).toLocaleDateString('ko-KR')} · ${release.summary}`));timeline.append(row);}
     content.append(timeline);const readme=el('details');readme.append(el('summary','실행 안내와 설정 보기'),el('pre',item.readme,'readme'));content.append(readme);
     const download=el('button','JSON 번들 다운로드 ↓','primary detail-download');download.onclick=async()=>{download.disabled=true;try{await downloadItem(item);}finally{download.disabled=false;}};content.append(download);
     if(!$('#detail-dialog').open)$('#detail-dialog').showModal();
@@ -89,6 +89,24 @@ async function downloadItem(item){
     const url=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}));const link=el('a');link.href=url;link.download=`${item.id}-v${bundle.version}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast('번들을 내려받았습니다. 피클에게 설치를 요청하세요.');await search();
   }catch(error){toast(error.message);}
 }
+let feedbackPending=false,feedbackRetryAt=0;
+$('#feedback-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(feedbackPending)return;
+  const status=$('#feedback-status'),button=$('#feedback-submit');
+  if(Date.now()<feedbackRetryAt){status.textContent=`요청이 많습니다. ${Math.ceil((feedbackRetryAt-Date.now())/1000)}초 후 다시 시도해 주세요.`;return;}
+  feedbackPending=true;button.disabled=true;status.textContent='접수 중입니다…';
+  try{
+    const data={category:$('#feedback-category').value,title:$('#feedback-title').value.trim(),content:$('#feedback-content').value.trim()};
+    const alias=$('#feedback-alias').value.trim();if(alias)data.submittedBy=alias;
+    const result=await api('/api/feedback',{method:'POST',body:JSON.stringify(data)});
+    status.textContent=`접수되었습니다. 접수번호: ${result.feedbackId}. 개별 답변이나 공개 이슈가 자동 생성되지는 않습니다.`;
+    $('#feedback-form').reset();
+  }catch(error){
+    if(error.status===429){feedbackRetryAt=Date.now()+Math.max(1,error.retryAfter)*1000;status.textContent=`요청이 많습니다. ${Math.max(1,error.retryAfter)}초 후 다시 시도해 주세요.`;}
+    else status.textContent=error.message+(error.status&&error.status<500?'':' 접수 여부가 불확실하므로 자동 재전송하지 않습니다.');
+  }finally{feedbackPending=false;button.disabled=false;}
+});
 $('#consent-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#consent-submit');button.disabled=true;$('#consent-error').textContent='';
   const shownVersion=state.terms?.termsVersion;

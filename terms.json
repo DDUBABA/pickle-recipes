@@ -1,5 +1,5 @@
 {
-  "termsVersion": "2026-11-17.5",
+  "termsVersion": "2026-11-17.6",
   "effectiveAt": "2026-11-17T00:00:00Z",
   "termsUrl": "/terms.html",
   "disclaimerUrl": "/terms.html#disclaimer",
@@ -60,8 +60,8 @@
   "affiliation": {
     "type": "independent-third-party-community",
     "isOfficial": false,
-    "operator": "jkc1832",
-    "operatorUrl": "https://github.com/jkc1832",
+    "operator": "DDUBABA",
+    "operatorUrl": "https://github.com/DDUBABA",
     "disclosure": "피클 제작사와 무관하게 운영되는 비공식 서드파티 커뮤니티입니다. 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물에 대한 제작사의 검토·보증을 의미하지 않습니다.",
     "scope": "이 사이트의 약관·가이드·제출 규격은 커뮤니티 자체 규칙이며 피클 제작사의 약관·공식 규격이 아닙니다."
   },
@@ -73,11 +73,35 @@
     "consentEvidence": "delete with revoked or inactive consent after 180 days",
     "activeConsents": "retained",
     "lifetimeItemTotals": "retained",
-    "cleanupIntervalHours": 24
+    "cleanupIntervalHours": 24,
+    "feedbackDays": 180
   },
   "consentRequiredFor": [
     "download",
     "submit"
   ],
-  "publicBrowsingAllowed": true
+  "publicBrowsingAllowed": true,
+  "feedback": {
+    "issuesUrl": "https://github.com/DDUBABA/pickle-recipes/issues",
+    "formUrl": "/#feedback",
+    "apiUrl": "/api/feedback",
+    "privacyUrl": "/terms.html#feedback",
+    "consentRequired": false,
+    "collection": [
+      "category",
+      "title",
+      "content",
+      "submittedBy (optional alias)",
+      "feedbackId",
+      "createdAt"
+    ],
+    "purpose": "문의 처리 및 서비스 개선",
+    "storage": "Cloudflare D1 (operator only)",
+    "publiclyPosted": false,
+    "retentionDays": 180,
+    "rawIpStored": false,
+    "userAgentStored": false,
+    "rateLimitIdentity": "daily HMAC of client address; expired buckets cleaned",
+    "automaticReply": false
+  }
 }

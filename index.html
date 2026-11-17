@@ -8,7 +8,7 @@
 <meta property="og:type" content="website"><meta property="og:locale" content="ko_KR"><meta property="og:title" content="피클 레시피 · Pickle Recipes | 비공식 커뮤니티"><meta property="og:description" content="사용자가 나누는 자동화 자료. 피클 제작사와 무관한 비공식 서드파티 커뮤니티입니다."><meta property="og:url" content="https://pickle-recipes.pages.dev/"><meta property="og:image" content="https://pickle-recipes.pages.dev/social-card.png">
 <meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#315b38">
 <link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/style.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"피클 레시피 · Pickle Recipes | 비공식 커뮤니티","url":"https://pickle-recipes.pages.dev/","description":"피클 제작사와 무관하게 운영되는 비공식 서드파티 커넥터·레시피 공유 커뮤니티","inLanguage":"ko","publisher":{"@type":"Person","name":"jkc1832","url":"https://github.com/jkc1832"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"피클 레시피 · Pickle Recipes | 비공식 커뮤니티","url":"https://pickle-recipes.pages.dev/","description":"피클 제작사와 무관하게 운영되는 비공식 서드파티 커넥터·레시피 공유 커뮤니티","inLanguage":"ko","publisher":{"@type":"Person","name":"DDUBABA","url":"https://github.com/DDUBABA"}}</script>
 <script src="/app.js" type="module"></script></head>
 <body>
 <a class="skip" href="#explore">검색으로 바로가기</a>
@@ -32,7 +32,18 @@
 <div class="rules"><span class="rule-icon">✓</span><p><b>함께 쓰는 코드에도 지켜야 할 약속이 있어요.</b><br>이용 동의는 약관 변경 또는 연결 해제(철회) 전까지 유효해요. 약관이 바뀌면 다운로드·공유 전에 재동의해요. 연동 도구는 개인정보와 인증 정보를 사용자 측에 보관하고, 업데이트할 때 개인 설정과 예약을 보존해야 해요.</p><a href="/terms.html">약속 자세히 보기 ↗</a></div>
 </section>
 <section class="ai-section wrap"><div><p class="eyebrow">FOR AI ASSISTANTS</p><h2>AI를 위한 커뮤니티 연동 안내</h2><p>이 사이트의 연동 가이드와 약관을 확인하세요. 제작사의 공식 규격이나 공식 연동을 뜻하지 않습니다.</p></div><div class="ai-links"><a href="/guide.md">커뮤니티 가이드 <code>/guide.md</code> ↗</a><a href="/recipes/index.json">전체 카탈로그 <code>/recipes/index.json</code> ↗</a><a href="/template/">빈 템플릿 <code>/template/</code> ↗</a><a href="/terms.json">약관 버전 <code>/terms.json</code> ↗</a></div></section>
-</main><footer class="footer wrap"><a class="brand" href="/"><span class="brand-mark">p</span> pickle <span>recipes</span></a><p>피클 제작사와 무관한 비공식 커뮤니티<br>운영: jkc1832 · 제작사의 검토·보증 없음</p><div><a href="/terms.html">약관 및 개인정보</a><a href="/LICENSE">MIT</a><a href="https://github.com/jkc1832/pickle-recipes">GitHub ↗</a></div></footer>
+<section class="feedback-section wrap" id="feedback" aria-labelledby="feedback-heading">
+<p class="eyebrow">CONTACT & FEEDBACK</p><h2 id="feedback-heading">함께 더 나은 레시피 공간을 만들어요</h2>
+<p><a href="https://github.com/DDUBABA/pickle-recipes/issues">문의·건의하기 ↗</a>에서 공개로 이야기하거나, GitHub 계정 없이 아래 폼으로 운영자에게 의견을 남겨 주세요.</p>
+<form id="feedback-form" aria-describedby="feedback-privacy">
+<div class="feedback-fields"><label class="field">분류<select id="feedback-category" required><option value="suggestion">기능 건의</option><option value="bug">오류 제보</option><option value="question">이용 문의</option><option value="other">기타</option></select></label>
+<label class="field">임의 별칭 <span class="muted">선택</span><input id="feedback-alias" maxlength="60" pattern="[a-zA-Z0-9가-힣_\-]+" autocomplete="off" placeholder="실명·연락처 대신 별칭"></label></div>
+<label class="field">제목<input id="feedback-title" required maxlength="120" autocomplete="off" placeholder="어떤 점을 개선하면 좋을까요?"></label>
+<label class="field">내용<textarea id="feedback-content" required maxlength="5000" rows="6" placeholder="문제 상황이나 아이디어를 알려 주세요. 개인정보와 인증 정보는 제외해 주세요."></textarea></label>
+<p id="feedback-privacy">분류·제목·내용·선택 별칭·접수번호·시각은 문의 처리 목적으로 운영자만 보는 서버에 180일간 보관합니다. 이메일·전화번호·주소·토큰을 보내지 마세요. 자동 검사로 모든 개인정보를 찾을 수는 없습니다. 개별 답변과 공개 이슈는 자동 생성되지 않습니다. <a href="/terms.html#feedback">문의 보관 안내</a></p>
+<button type="submit" class="primary" id="feedback-submit">의견 보내기 ↗</button><p id="feedback-status" role="status" aria-live="polite"></p>
+</form></section>
+</main><footer class="footer wrap"><a class="brand" href="/"><span class="brand-mark">p</span> pickle <span>recipes</span></a><p>피클 제작사와 무관한 비공식 커뮤니티<br>운영: DDUBABA · 제작사의 검토·보증 없음</p><div><a href="https://github.com/DDUBABA/pickle-recipes/issues">문의·건의하기</a><a href="/#feedback">계정 없이 문의</a><a href="/terms.html">약관 및 개인정보</a><a href="/LICENSE">MIT</a><a href="https://github.com/DDUBABA/pickle-recipes">GitHub ↗</a></div></footer>
 <dialog id="consent-dialog" aria-labelledby="consent-title">
 <p class="eyebrow">이용 동의</p><h2 id="consent-title">시작하기 전에, 확인해 주세요.</h2>
 <p class="affiliation-note">이곳은 피클 제작사와 무관한 비공식 사용자 공유 사이트예요.</p>
@@ -48,7 +59,7 @@
 <label class="field">이용 별칭 <input id="user-identifier" required maxlength="100" placeholder="실명 대신 나만의 별칭을 입력해 주세요"></label>
 <label class="field">표시 이름 <span class="muted">선택</span><input id="display-name" maxlength="100" placeholder="어떻게 불러드릴까요?"></label>
 <p>‘동의하고 이용’을 누르면 위 내용과 약관·면책 전문에 동의하며, 검증된 자동화의 자동 업로드도 함께 허용해요. 동의는 약관 변경 또는 연결 해제(철회) 전까지 유효해요. 다만 180일간 사용하지 않아 동의 기록이 삭제되면 다시 동의해야 해요.</p>
-<p class="form-error" id="consent-error" role="alert"></p><p class="muted" id="terms-version">약관 버전 2026-11-17.5</p>
+<p class="form-error" id="consent-error" role="alert"></p><p class="muted" id="terms-version">약관 버전 2026-11-17.6</p>
 <div class="modal-actions"><button type="button" class="outline" data-close="consent-dialog">동의하지 않음</button><button type="submit" class="primary" id="consent-submit">동의하고 이용</button></div>
 </form></dialog>
 <dialog id="detail-dialog" aria-labelledby="detail-name"><button class="close" data-close="detail-dialog" aria-label="상세 창 닫기">×</button><div id="detail-content"></div></dialog>

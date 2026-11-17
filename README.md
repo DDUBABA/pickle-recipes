@@ -1,6 +1,6 @@
 # 피클 레시피 · Pickle Recipes
 
-**피클 제작사와 무관한 비공식 서드파티 커뮤니티입니다.** 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물은 제작사의 검토·보증을 의미하지 않습니다. 운영자는 [jkc1832](https://github.com/jkc1832)입니다.
+**피클 제작사와 무관한 비공식 서드파티 커뮤니티입니다.** 제작사의 공식 서비스·제휴 서비스가 아니며, 게시물은 제작사의 검토·보증을 의미하지 않습니다. 운영자는 [DDUBABA](https://github.com/DDUBABA)입니다.
 
 사용자가 만든 피클 커넥터와 레시피를 GitHub 계정 없이 검색·다운로드·공유하는 자료 허브입니다. 가이드·약관·API·템플릿·저장 경로는 이 커뮤니티 자체 규칙이며 제작사의 공식 규격이나 SDK가 아닙니다. 각 기능의 사용 가능 여부는 이용하는 AI 환경에 따라 달라집니다. **Cloudflare Pages + Pages Functions + D1**으로 동작하며, 피클 로그인 브릿지와 별개의 프로젝트입니다.
 
@@ -9,6 +9,7 @@
 - 반응형 한국어 검색 UI: 종류·카테고리·인증 필터, 관련도 + 인기/최신/최근 패치 정렬, 다운로드 수, 상세·릴리즈 타임라인.
 - 두 버튼으로 약관 동의, D1 기록, 최신 버전 재검증, 이용 동의에 포함된 자동 업로드. 웹·피클 공용 다운로드 JSON 번들.
 - GitHub App 브랜치·PR 접수, 개인정보/위험 코드 검사, 기준 버전 충돌 확인, PR 번호 접수증.
+- 공식 [문의·건의하기](https://github.com/DDUBABA/pickle-recipes/issues)와 계정 없는 웹 폼·`POST /api/feedback`: D1 비공개 저장, 개인정보·토큰 패턴 차단, 429 제한, 180일 정리.
 - PR 검사 및 결과 코멘트, 병합 후 자동 버전 확정·카탈로그·사이트맵 생성·선택적 자동 배포.
 - AI 진입점 `/guide.md`, `/template/`, `/terms.json`, `/recipes/index.json`, `/llms.txt`.
 
@@ -67,7 +68,7 @@ node --test tests/*.test.mjs
    | `SUBMISSION_METADATA_SECRET` | PR 메타 위변조 검증용 충분히 긴 임의 비밀값. GitHub Actions secret에도 동일한 값 |
    | `ADMIN_STATS_TOKEN` | 선택 관리자 통계 접근 토큰. 미설정이어도 사용자/일별/버전별 통계는 비공개 |
 
-   일반 변수 `GITHUB_REPOSITORY=jkc1832/pickle-recipes`, `GITHUB_DEFAULT_BRANCH=main`은 Wrangler에 선언되어 있습니다. 비밀값은 `.dev.vars.example`을 복사한 **미추적** `.dev.vars`에만 로컬 설정하고, 터미널 기록·Git·채팅에 넣지 마세요.
+   일반 변수 `GITHUB_REPOSITORY=DDUBABA/pickle-recipes`, `GITHUB_DEFAULT_BRANCH=main`은 Wrangler에 선언되어 있습니다. 비밀값은 `.dev.vars.example`을 복사한 **미추적** `.dev.vars`에만 로컬 설정하고, 터미널 기록·Git·채팅에 넣지 마세요.
 
 6. 배포합니다.
 
@@ -83,6 +84,8 @@ Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 p
 
 ## GitHub App 봇 설정
 
+아이디 변경과 이메일 비공개 전환의 실제 적용 순서는 [계정 전환·배포 안내](docs/account-migration.md)를 따릅니다. 확인된 noreply 이메일 설정 전에는 커밋하지 않고, GitHub 아이디 변경 전에는 원격 URL을 바꾸지 않습니다.
+
 1. GitHub Settings → Developer settings → GitHub Apps에서 전용 App을 만듭니다. 사용자 인증/OAuth 앱이 아닙니다. 홈페이지 URL은 실제 사이트 주소를 사용하고 webhook은 사용하지 않으면 비활성화합니다.
 2. Repository permissions: **Contents: Read & write**, **Pull requests: Read & write**, Metadata: Read. 저장소는 `pickle-recipes` 하나만 설치 대상으로 선택합니다. 사용자 사이트 이용자에게 GitHub 로그인을 요구하지 않습니다.
 3. App ID, installation ID, Generate a private key로 받은 PEM을 위 Cloudflare 비밀값에 등록합니다. App은 짧은 수명의 installation token을 요청할 때 해당 저장소로 범위를 제한합니다.
@@ -96,14 +99,14 @@ Pages의 `pickle-recipes` 프로젝트 → Settings → Variables and Secrets에
 | 확인할 설정 | 확인 사항 |
 | --- | --- |
 | `GITHUB_APP_ID` | PEM을 발급한 접수용 GitHub App의 App ID. installation ID나 Client secret과 혼동하지 않습니다. JWT issuer로 지원되는 Client ID도 사용할 수 있습니다. 앞뒤 공백·따옴표를 넣지 않습니다. |
-| `GITHUB_INSTALLATION_ID` | 위 App을 `jkc1832/pickle-recipes`에 설치한 installation의 **숫자 ID만** 넣습니다. 설치 설정 URL 전체나 App ID를 넣지 않습니다. |
+| `GITHUB_INSTALLATION_ID` | 위 App을 `DDUBABA/pickle-recipes`에 설치한 installation의 **숫자 ID만** 넣습니다. 설치 설정 URL 전체나 App ID를 넣지 않습니다. |
 | `GITHUB_APP_PRIVATE_KEY` | 폐기되지 않은 키의 BEGIN/END를 포함한 PEM 전체. 파일 경로나 PEM 전체를 다시 Base64 인코딩한 값은 사용할 수 없습니다. 암호화되지 않은 RSA PKCS#1(`BEGIN RSA PRIVATE KEY`)·PKCS#8(`BEGIN PRIVATE KEY`)을 지원합니다. |
 | `SUBMISSION_METADATA_SECRET` | 충분히 긴 임의 문자열을 Pages와 저장소 Actions secret에 **바이트 단위로 동일하게** 등록합니다. 따옴표·끝 줄바꿈·공백도 값의 일부입니다. 코드가 임의로 정규화하지 않습니다. |
 
 개인키의 실제 LF/CRLF, 문자 그대로의 `\n`/`\r\n`, 앞뒤 공백·BOM 및 한 겹의 짝지어진 따옴표를 정규화합니다. PEM 본문 손상, 암호화 키, 공개키, EC 키는 거부합니다. GitHub 기본 발급 키인 PKCS#1과 PKCS#8 모두 `node:crypto.createPrivateKey`로 검사하므로 운영자가 키를 변환할 필요는 없습니다. JWT 서명 시 검증된 키를 PKCS#8 DER로 내보내고, DER 뷰의 바이트만 복사하여 WebCrypto `importKey('pkcs8', ...)`에 전달합니다. 비동기 `crypto.subtle.sign`은 `RSASSA-PKCS1-v1_5`와 `SHA-256`을 사용하며 JWT의 `RS256`과 대응합니다. `node:crypto.sign`은 호출하지 않습니다. [GitHub 개인키 형식](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps), [GitHub JWT 문서](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app), [Cloudflare WebCrypto 문서](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/)
 
-- App의 Repository permissions는 **Contents: Read and write**, **Pull requests: Read and write**이며, 설치 대상에 `jkc1832/pickle-recipes`가 포함되어야 합니다. 권한을 바꿨다면 설치 소유자의 변경 승인까지 확인합니다. App 설치가 중지되거나 삭제되지 않았는지도 확인합니다.
-- 일반 변수 `GITHUB_REPOSITORY=jkc1832/pickle-recipes`, `GITHUB_DEFAULT_BRANCH=main`과 `DB` 바인딩·마이그레이션도 필요합니다. 접수 PR의 대상인 `main`과 Pages 배포 브랜치인 `production`은 서로 다른 설정입니다. `wrangler.jsonc`의 `nodejs_compat`와 compatibility date가 실제 배포에도 반영되었는지 확인합니다.
+- App의 Repository permissions는 **Contents: Read and write**, **Pull requests: Read and write**이며, 설치 대상에 `DDUBABA/pickle-recipes`가 포함되어야 합니다. 권한을 바꿨다면 설치 소유자의 변경 승인까지 확인합니다. App 설치가 중지되거나 삭제되지 않았는지도 확인합니다.
+- 일반 변수 `GITHUB_REPOSITORY=DDUBABA/pickle-recipes`, `GITHUB_DEFAULT_BRANCH=main`과 `DB` 바인딩·마이그레이션도 필요합니다. 접수 PR의 대상인 `main`과 Pages 배포 브랜치인 `production`은 서로 다른 설정입니다. `wrangler.jsonc`의 `nodejs_compat`와 compatibility date가 실제 배포에도 반영되었는지 확인합니다.
 - 메타데이터 비밀값 불일치는 GitHub JWT 인증 실패가 아닙니다. 접수 PR이 생성되더라도 `scripts/release.mjs`의 HMAC 검증 또는 운영 점검이 실패할 수 있습니다. 런타임에서는 Actions secret과 비교할 수 없으므로 동일한 원본에서 두 곳에 등록합니다. 교체할 때는 기존 접수 PR의 서명도 영향을 받습니다.
 
 ### `POST /api/submit` 오류 진단
@@ -131,6 +134,8 @@ Pages의 `pickle-recipes` 프로젝트 → Settings → Variables and Secrets에
 
 ## 동의·Retention 변경 배포 순서
 
+문의 기능에는 `0004_feedback.sql`도 필요합니다. Git 연동만 사용하고 Actions에 Cloudflare 토큰이 없으면 **병합 전에** 원격 마이그레이션을 수동 적용합니다. 토큰이 있는 릴리즈는 마이그레이션 성공 후 `production` 브랜치를 갱신합니다. 문의 180일 삭제가 무요청 기간에도 동작하려면 새 `lib/retention.js`가 포함된 Cron Worker도 배포합니다.
+
 기존 운영 환경에는 **Pages 새 코드 배포 전에** 아래 D1 마이그레이션을 적용합니다. 이어서 이 변경을 포함한 Pages를 배포하고 Cron Worker를 배포합니다. 기존 Git 연동에서는 PR 병합 후 릴리즈 작업이 갱신하는 production 브랜치가 Pages 배포 대상입니다.
 
 ```sh
@@ -139,7 +144,7 @@ pnpm exec wrangler d1 migrations apply DB --remote -c wrangler.jsonc
 pnpm exec wrangler deploy -c wrangler.retention.jsonc
 ```
 
-- `0003_consent_retention.sql`은 기존 expires_at을 NULL로 바꾸고, last_used_at을 동의 시각과 마지막 다운로드 시각 중 최신 값으로 채웁니다. 기존 약관 버전·철회·자동 업로드 선택은 그대로이며 약관 2026-11-17.5에는 재동의가 필요합니다. 이전 시스템이 검증 시각을 기록하지 않았으므로 과거 활동은 이 두 기록으로만 복원합니다.
+- `0003_consent_retention.sql`은 기존 expires_at을 NULL로 바꾸고, last_used_at을 동의 시각과 마지막 다운로드 시각 중 최신 값으로 채웁니다. 기존 약관 버전·철회·자동 업로드 선택은 그대로이며 약관 2026-11-17.6에는 재동의가 필요합니다. 이전 시스템이 검증 시각을 기록하지 않았으므로 과거 활동은 이 두 기록으로만 복원합니다.
 - `workers/retention-cron/index.js`는 Pages와 같은 D1을 직접 정리합니다. `0 19 * * *`는 UTC 19시, 한국시간 매일 새벽 4시입니다. HTTP 공개 경로와 별도 인증 Secret은 사용하지 않습니다.
 - Pages의 POST 요청은 요청 처리 후 Lazy Cleanup을 예약합니다. Cron·Lazy·수동 정리는 `lib/retention.js`와 `retention_state`를 공유하여 성공한 정리 간 최소 24시간을 지킵니다. 최근 활동을 먼저 갱신하며, 실행 식별자 획득과 모든 삭제가 하나의 D1 batch 트랜잭션이므로 동시 요청은 한 번만 정리하고 실패 시 타임스탬프도 롤백합니다. Lazy 오류는 원래 API 응답을 바꾸지 않고 다음 요청에서 재시도합니다. Cron 오류는 실패 실행으로 기록됩니다.
 - 철회 180일 경과 및 미철회·최근 활동 180일 경과 동의는 자식 로그·이력을 먼저 삭제한 뒤 제거합니다. 최근 활동한 동의는 유지하되 오래된 IP·User-Agent는 지웁니다. 누적 item_stats는 변경하지 않습니다. 단순 공개 열람은 동의 활동 시각을 갱신하지 않습니다.
@@ -160,7 +165,7 @@ pnpm exec wrangler deploy --dry-run -c wrangler.retention.jsonc
 운영 배포 워크플로는 이 저장소만 대상으로 하는 GitHub App 단기 토큰을 발급합니다. Actions 변수 `RELEASE_APP_ID`, 암호화 Secret `RELEASE_APP_PRIVATE_KEY`를 설정하고 일반 `GITHUB_TOKEN`은 읽기 권한으로 제한합니다. `main`의 PR·필수 검사(`validate`, `application-check`)·최신 main 반영·검토 대화 해결은 모든 변경에 적용하며, 승인 리뷰는 변경 경로에 따라 구분합니다.
 
 - **사이트·GitHub 운영 변경**: 운영자가 자신의 PR을 검사 통과 후 추가 승인 리뷰 없이 병합합니다. 자동 생성 카탈로그 `recipes/index.json`도 여기에 포함됩니다.
-- **신규 레시피·커넥터와 기존 항목 수정**: `recipes/`의 공통 코드 변경은 `.github/CODEOWNERS`에 지정된 운영자 `jkc1832`의 승인 리뷰가 필요합니다. 새 커밋이 추가되면 재승인해야 합니다. 사이트 접수 API는 운영자 개인 토큰 대신 전용 GitHub App으로 PR을 작성하므로 운영자가 작성자와 별개로 승인할 수 있습니다. API는 PR 생성까지만 수행하며 자동 승인·병합하지 않습니다. 운영자 자신이 만든 항목도 사이트 접수 API를 이용합니다.
+- **신규 레시피·커넥터와 기존 항목 수정**: `recipes/`의 공통 코드 변경은 `.github/CODEOWNERS`에 지정된 운영자 `DDUBABA`의 승인 리뷰가 필요합니다. 새 커밋이 추가되면 재승인해야 합니다. 사이트 접수 API는 운영자 개인 토큰 대신 전용 GitHub App으로 PR을 작성하므로 운영자가 작성자와 별개로 승인할 수 있습니다. API는 PR 생성까지만 수행하며 자동 승인·병합하지 않습니다. 운영자 자신이 만든 항목도 사이트 접수 API를 이용합니다.
 
 버전 확정 봇만 직접 쓰기 예외를 두고, `production`은 같은 봇만 업데이트할 수 있도록 별도 규칙을 적용합니다. 강제 푸시와 브랜치 삭제도 제한합니다. 봇 키를 교체하거나 접근을 철회할 때 Cloudflare와 Actions 두 저장 위치를 함께 관리하세요. 코드 소유자 지정은 병합 대상 브랜치의 파일을 기준으로 하므로, 새 보호 설정을 적용하기 전에 이 `CODEOWNERS`를 먼저 main에 반영해야 합니다.
 
@@ -168,7 +173,7 @@ Cloudflare의 프리뷰 접근 제한(Access)을 켜서 이전 배포의 해시 
 
 `POST /api/submit` 형식과 전체 동의 절차는 [guide.md](guide.md)를 따릅니다. API는 새 버전 입력을 거부하며 `baseVersion`, 공개용 `submittedBy`, `summary`, `type`, `meta`, `files`를 받습니다. 새 항목의 PR에는 임시 메타 `version:"1.0"`, `releases:[]`가 들어가지만, 릴리즈 전에는 사이트 카탈로그/번들에 노출되지 않습니다.
 
-약관 `2026-11-17.5`의 동의 카드는 ‘동의하지 않음’과 ‘동의하고 이용’ 두 버튼만 제공합니다. ‘동의하고 이용’에는 규격·개인정보 제거 검증을 거친 공통 코드의 자동 업로드 허용이 포함됩니다. `POST /api/consent`는 `autoUploadAllowed`를 생략하면 `true`, 명시적으로 `false`를 보내면 `false`로 저장하고 반환합니다. 기존 동의 기록은 변경하지 않으며 이전 약관 이용자는 재동의해야 합니다. AI는 사용자의 자동 업로드 중지 요청을 로컬에 보존하고 재개 요청 전까지 제출하지 않아야 합니다. 실행 전 대상·권한·비용과 실행 후 실제 처리 결과를 확인할 최종 책임은 사용자에게 있습니다.
+약관 `2026-11-17.6`의 동의 카드는 ‘동의하지 않음’과 ‘동의하고 이용’ 두 버튼만 제공합니다. ‘동의하고 이용’에는 규격·개인정보 제거 검증을 거친 공통 코드의 자동 업로드 허용이 포함됩니다. `POST /api/consent`는 `autoUploadAllowed`를 생략하면 `true`, 명시적으로 `false`를 보내면 `false`로 저장하고 반환합니다. 기존 동의 기록은 변경하지 않으며 이전 약관 이용자는 재동의해야 합니다. AI는 사용자의 자동 업로드 중지 요청을 로컬에 보존하고 재개 요청 전까지 제출하지 않아야 합니다. 실행 전 대상·권한·비용과 실행 후 실제 처리 결과를 확인할 최종 책임은 사용자에게 있습니다.
 
 - 새 항목: 1.0. 패치: 현재 확정 버전 1.2 → 1.3; 1.9 → 2.0.
 - 리믹스/이식: 새 ID로 1.0, 부모 기준 버전을 릴리즈 이력에 남깁니다.

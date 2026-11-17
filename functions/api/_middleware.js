@@ -12,7 +12,11 @@ export async function onRequest(context) {
       await rateLimit(context);
       cleanupAllowed=context.request.method==='POST' && new URL(context.request.url).pathname!=='/api/admin/maintenance';
       response=await context.next();
-      if(response.status===405||response.status===404)response=json({ok:false,code:'NOT_FOUND_OR_METHOD',message:'API 경로와 HTTP 메서드를 확인해 주세요.'},response.status);
+      if(response.status===405||response.status===404){
+        const allow=response.headers.get('Allow');
+        response=json({ok:false,code:'NOT_FOUND_OR_METHOD',message:'API 경로와 HTTP 메서드를 확인해 주세요.'},response.status);
+        if(allow)response.headers.set('Allow',allow);
+      }
     }
   } catch(error) {
     if (error instanceof ApiError) {

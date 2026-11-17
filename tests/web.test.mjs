@@ -11,7 +11,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
 // Execute the actual browser script with a small DOM/event harness. Network and
 // download side effects are observable; no production requests or real tokens.
-function browser({stored=null,verifyStatus=200,downloadStatus=200,storageBlocked=false}={}){
+function browser({stored=null,verifyStatus=200,downloadStatus=200,storageBlocked=false,feedbackStatus=201}={}){
   const calls=[],downloads=[],nodes=new Map(),timers=new Map();let timer=0;
   class Element {
     children=[];listeners={};value='';hidden=false;open=false;disabled=false;dataset={};
@@ -25,6 +25,7 @@ function browser({stored=null,verifyStatus=200,downloadStatus=200,storageBlocked
     close(){this.open=false;this.listeners.close?.();}
     click(){if(this.download)downloads.push(this.download);return this.onclick?.();}
     remove(){}
+    reset(){for(const id of ['#feedback-title','#feedback-content','#feedback-alias'])get(id).value='';}
   }
   for(const match of html.matchAll(/id="([^"]+)"/g))nodes.set('#'+match[1],new Element('div'));
   const get=selector=>nodes.get(selector);
@@ -46,6 +47,7 @@ function browser({stored=null,verifyStatus=200,downloadStatus=200,storageBlocked
       else if(path==='/api/consent/revoke')data={ok:true,revoked:true};
       else if(path==='/api/consent')data={ok:true,...consent};
       else if(path==='/api/download'){status=downloadStatus;data=status===200?{ok:true,version:'1.0',files:{}}:{message:'일시적인 오류'};}
+      else if(path==='/api/feedback'){status=feedbackStatus;data=status===201?{ok:true,feedbackId:'receipt-example'}:{message:'입력 확인',retryAfter:60};}
       else throw new Error('Unexpected request '+path);
       return {ok:status<400,status,json:async()=>data};
     }
@@ -65,6 +67,28 @@ test('Web entry, live keyword search and README detail never prompt for consent,
   }
   const blocked=browser({storageBlocked:true});await flush();await blocked.typeSearch();
   assert.equal(blocked.get('#consent-dialog').open,false);assert.ok(blocked.get('#catalog').children.length);
+});
+
+test('Feedback submits without saved consent credentials, shows a receipt and clears fields only on success',async()=>{
+  const b=browser({stored:consent});await flush();
+  b.get('#feedback-category').value='suggestion';b.get('#feedback-title').value='개선';b.get('#feedback-content').value='필터 초기화';
+  const send=b.get('#feedback-form').listeners.submit;
+  const pending=send({preventDefault(){}});await send({preventDefault(){}});await pending;
+  const calls=b.calls.filter(c=>c.path==='/api/feedback');assert.equal(calls.length,1);
+  assert.deepEqual(JSON.parse(calls[0].options.body),{category:'suggestion',title:'개선',content:'필터 초기화'});
+  assert.ok(!calls[0].options.headers.Authorization);assert.ok(!calls[0].options.headers['X-Consent-Id']);assert.ok(!calls[0].options.headers['X-Terms-Version']);
+  assert.match(b.get('#feedback-status').textContent,/receipt-example/);assert.equal(b.get('#feedback-content').value,'');assert.equal(b.get('#feedback-submit').disabled,false);
+  assert.equal(b.get('#consent-dialog').open,false);
+});
+
+test('Feedback failures preserve the draft; 429 prevents early retry and uncertain responses are not repeated',async()=>{
+  for(const feedbackStatus of [400,429,503]){
+    const b=browser({feedbackStatus});await flush();b.get('#feedback-content').value='보존할 내용';
+    await b.get('#feedback-form').listeners.submit({preventDefault(){}});
+    if(feedbackStatus===429){await b.get('#feedback-form').listeners.submit({preventDefault(){}});assert.match(b.get('#feedback-status').textContent,/초 후/);}
+    if(feedbackStatus===503)assert.match(b.get('#feedback-status').textContent,/자동 재전송하지 않습니다/);
+    assert.equal(b.calls.filter(c=>c.path==='/api/feedback').length,1);assert.equal(b.get('#feedback-content').value,'보존할 내용');assert.equal(b.get('#feedback-submit').disabled,false);
+  }
 });
 
 test('Download prompts at execution, cancellation preserves browsing, and acceptance resumes the same download once',async()=>{
