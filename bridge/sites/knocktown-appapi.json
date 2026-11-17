@@ -2,7 +2,7 @@
   "$schema": "./_schema.json",
   "siteId": "knocktown-appapi",
   "name": "노크타운 앱 로그인",
-  "bridgeUrl": "https://loginbridge--knocktown-appapi.pickle-recipes.com/?download=1",
+  "bridgeUrl": "https://pickle-loginbridge--knocktown-appapi.pages.dev/?download=1",
   "originLoginUrl": "https://homeknocktown.co.kr/",
   "description": "노크타운 앱 계정으로 로그인해 피클에서 사용할 연결 파일을 만듭니다. 원본 주소는 서비스 홈페이지입니다.",
   "mode": "api_token",
