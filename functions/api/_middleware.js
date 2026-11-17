@@ -17,7 +17,8 @@ export async function onRequest(context) {
       response=json({ok:false,code:error.code,message:error.message,...error.extra},error.status);
       if(error.status===429)response.headers.set('Retry-After',String(error.extra.retryAfter));
     } else {
-      console.error('API failure', error?.name || 'Error');
+      // Even exception names can contain upstream/user data. Log no raw exception fields.
+      console.error('API failure', 'SERVICE_UNAVAILABLE');
       response=json({ok:false,code:'SERVICE_UNAVAILABLE',message:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'},503);
     }
   }
