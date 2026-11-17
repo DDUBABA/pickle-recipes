@@ -42,7 +42,17 @@
     "스마트홈"
   ],
   "version": "1.0",
-  "releases": [],
-  "createdAt": "2026-11-17T10:01:23.041Z",
-  "updatedAt": "2026-11-17T10:01:23.041Z"
+  "releases": [
+    {
+      "version": "1.0",
+      "baseVersion": null,
+      "date": "2026-11-17T10:20:54Z",
+      "type": "new",
+      "summary": "스마트싱스 기기제어 커넥터 최초 등록",
+      "submittedBy": "jkc",
+      "prNumber": 5
+    }
+  ],
+  "createdAt": "2026-11-17T10:20:54Z",
+  "updatedAt": "2026-11-17T10:20:54Z"
 }

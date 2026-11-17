@@ -3,7 +3,26 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
-  "items": {}
+  "items": {
+    "smartthings-device-control": {
+      "version": "1.0",
+      "releases": [
+        {
+          "version": "1.0",
+          "baseVersion": null,
+          "date": "2026-11-17T10:20:54Z",
+          "type": "new",
+          "summary": "스마트싱스 기기제어 커넥터 최초 등록",
+          "submittedBy": "jkc",
+          "prNumber": 5
+        }
+      ],
+      "hash": "eabb0562a58848bcc5fd14bcff0c9642c5f4ec54d3a4adfcb50ab57bafc7ce97",
+      "createdAt": "2026-11-17T10:20:54Z",
+      "updatedAt": "2026-11-17T10:20:54Z"
+    }
+  }
 }

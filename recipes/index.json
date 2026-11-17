@@ -23,5 +23,64 @@
     "submit": "/api/submit",
     "stats": "/api/stats"
   },
-  "items": []
+  "items": [
+    {
+      "id": "smartthings-device-control",
+      "name": "스마트싱스 기기제어",
+      "description": "삼성 스마트싱스에 연결된 기기의 상태를 읽고 전원을 켜고 끄며, 차량 원격 시동과 스마트싱스 자동 루틴·장면을 다룹니다.",
+      "kind": "connector",
+      "status": "active",
+      "parentId": null,
+      "relationType": null,
+      "requires": [],
+      "category": "생활",
+      "authType": "token",
+      "keywords": [
+        "스마트싱스",
+        "스마트싱스 기기",
+        "기기 상태",
+        "조명 켜기",
+        "조명 끄기",
+        "전원 끄기",
+        "온도",
+        "습도",
+        "문 열림",
+        "창문",
+        "모션",
+        "재실",
+        "누수",
+        "공기질",
+        "미세먼지",
+        "배터리",
+        "차 시동",
+        "원격 시동",
+        "공조",
+        "자동화",
+        "루틴",
+        "장면",
+        "스마트홈"
+      ],
+      "author": "jkc",
+      "tags": [
+        "조회",
+        "제어",
+        "자동화",
+        "스마트홈"
+      ],
+      "version": "1.0",
+      "releases": [
+        {
+          "version": "1.0",
+          "baseVersion": null,
+          "date": "2026-11-17T10:20:54Z",
+          "type": "new",
+          "summary": "스마트싱스 기기제어 커넥터 최초 등록",
+          "submittedBy": "jkc",
+          "prNumber": 5
+        }
+      ],
+      "createdAt": "2026-11-17T10:20:54Z",
+      "updatedAt": "2026-11-17T10:20:54Z"
+    }
+  ]
 }
