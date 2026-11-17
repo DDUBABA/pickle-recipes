@@ -44,7 +44,7 @@ node --test tests/*.test.mjs
    pnpm exec wrangler d1 create pickle-recipes
    ```
 
-2. 반환된 `database_id`를 `wrangler.jsonc`의 자리표시자 UUID 대신 입력합니다. 바인딩 이름은 반드시 `DB`입니다. `migrations/0001_init.sql`에 요청한 3개 테이블이 있습니다. `consents`에는 비밀 동의 토큰 해시와 선택 자동 업로드 동의 필드 2개를 추가했습니다.
+2. 다른 계정에 배포할 때는 반환된 `database_id`로 `wrangler.jsonc`의 기존 UUID를 교체합니다. 현재 UUID는 이 프로젝트용으로 생성한 D1을 가리킵니다. 바인딩 이름은 반드시 `DB`입니다. `migrations/0001_init.sql`에 요청한 3개 테이블이 있습니다. `consents`에는 비밀 동의 토큰 해시와 선택 자동 업로드 동의 필드 2개를 추가했습니다.
 
 3. 원격 마이그레이션과 Pages 프로젝트 생성을 진행합니다.
 
@@ -75,7 +75,7 @@ node --test tests/*.test.mjs
 
 7. 실서비스에서 `/terms.json`, `/guide.md`, `/api/consent/verify` 미동의 403, 동의 후 검색·다운로드, D1 카운트를 확인합니다. D1 production과 preview는 다른 DB를 사용하고 **PR preview에 운영 GitHub App 키나 관리자 토큰을 주입하지 마세요.** Pages의 Functions 한도 초과 정책은 fail closed로 설정하세요.
 
-Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 production branch를 **`production`**으로 지정하세요. Build command는 `node scripts/build.mjs`, output directory는 `dist`, 환경변수는 `NODE_VERSION=22`, `SKIP_DEPENDENCY_INSTALL=1`입니다. 빌드 스크립트는 외부 npm 패키지가 필요하지 않고 Cloudflare가 Functions를 컴파일합니다. Preview branch 배포는 비활성화하세요. Actions가 릴리즈와 검사를 완료한 커밋만 `production` 브랜치에 fast-forward로 올리므로 미확정 main 머지를 자동 배포하지 않습니다.
+Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 production branch를 `production`으로 지정하세요. Build command는 `node scripts/build.mjs`, output directory는 `dist`, 환경변수는 `NODE_VERSION=22`, `SKIP_DEPENDENCY_INSTALL=1`입니다. 빌드 스크립트는 외부 npm 패키지가 필요하지 않고 Cloudflare가 Functions를 컴파일합니다. Preview branch 배포는 비활성화하세요. Actions가 릴리즈와 검사를 완료한 커밋만 `production` 브랜치에 fast-forward로 올리므로 미확정 main 머지를 자동 배포하지 않습니다.
 
 **Direct Upload**는 대안입니다. 이 경우 위 CLI 명령을 사용하고, Actions에 Cloudflare API 토큰과 계정 ID가 있으면 원격 마이그레이션 및 직접 배포도 수행합니다. API 토큰이 없으면 직접 배포만 건너뛰고 검증된 `production` 브랜치는 항상 발행합니다.
 
@@ -95,7 +95,7 @@ Cloudflare Pages **Git integration**을 사용하면 저장소를 연결하고 p
 - 리믹스/이식: 새 ID로 1.0, 부모 기준 버전을 릴리즈 이력에 남깁니다.
 - PR 메타 블록: `baseVersion · submittedBy · termsVersion · consentId · summary`와 항목·종류·검증한 head SHA, HMAC 서명. `consentToken`은 절대로 공개하지 않습니다.
 - `.github/release-state.json`이 확정 버전·누적 이력·공통 코드 해시를 보존합니다. 중복 Actions 실행은 동일 PR을 다시 올리지 않습니다. 대기 job이 교체되어도 모든 미처리 merged PR을 순서대로 재검토합니다.
-- 병합된 코드와 서명·head·기준 버전이 맞지 않으면 자동 배포를 중단합니다. 충돌 시 운영자는 되돌리기 또는 최신 확정 버전에 재적용한 새 PR로 해결합니다. 서명 검사를 끄거나 릴리즈 원장을 임의로 조작해서 해결하지 마세요.
+- 병합된 코드와 서명·head·기준 버전이 맞지 않으면 자동 배포를 중단합니다. 충돌 PR은 병합 전에 닫고 최신 확정 버전으로 다시 제출하세요. 이미 잘못 병합했다면 되돌리기만으로 배포가 재개되지 않습니다. 미처리 병합 이력을 재검사하므로 운영자가 마지막 정상 릴리즈와 병합 이력을 대조하는 복구 작업이 필요합니다. 자동 충돌 복구는 제공하지 않으며, 서명 검사를 끄거나 근거 없이 릴리즈 원장을 수정하지 마세요.
 - 제출 후 파일 또는 메타 블록을 편집하면 head 서명이 달라져 거부됩니다. 수정 사항은 최신 기준으로 API에 다시 제출합니다.
 - main에 항목 파일을 직접 추가하면 공개되지 않습니다. 항목 변경은 검증된 접수 PR을 사용하세요. 앱 코드·문서 등 인프라 PR은 항목 버전을 변경하지 않습니다.
 - GitHub API 장애로 PR 생성의 응답을 받지 못했으면 반복 제출 전에 브랜치/PR 상태를 확인합니다. 생성 중 실패한 `submissions/` 브랜치는 운영자가 확인해 정리할 수 있습니다.
